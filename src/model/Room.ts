@@ -1,8 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose"
 
 export interface Room extends Document {
-    userId1: number
-    userId2: number
+    userId1: number // 1
+    userId2: number // 2
     code: string
 }
 

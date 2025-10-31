@@ -11,11 +11,54 @@ const randomImageName = () => crypto.randomBytes(32).toString('hex')
 const createUser = async (req: Request, res: Response) => {
     try {
         // Proceed with user creation
-        const {email, username, name, gender} = req.body
-        const exists = await User.findOne({username: username})
+        const email = req.body.email
+
+        if (!email) {
+            res.status(400).json({error: "Email is missing"})
+            return
+        }
+
+        const exists = await User.exists({email: email})
 
         if (exists) {
-            res.status(400).json({error: "Username already exists"})
+            res.status(409).json({message: "User already exists"})
+            return
+        }
+
+        // Count the existing users to assign a new ID
+        const count = await User.countDocuments({}, {hint: "_id_"})
+
+        // Create a new user
+        const user = new User({
+            id: count + 1,
+            email: email,
+            username: "",
+            profileImageUrl: "",
+            name: "",
+            gender: "",
+            code: ""
+        })
+
+        // Save the user to the database
+        const createdUser = await user.save()
+
+        // Respond with the newly created user
+        res.status(201).json({user: createdUser})
+
+    } catch (error: any) {
+        res.status(500).json({error: "Failed to create user", details: error.message})
+    }
+}
+
+
+const createProfile = async (req: Request, res: Response) => {
+    try {
+        // Proceed with user creation
+        const {email, username, name, gender} = req.body
+        const user = await User.findOne({email: email})
+
+        if (!user) {
+            res.status(404).json({error: "User with email does not exist"})
             return
         }
 
@@ -38,28 +81,19 @@ const createUser = async (req: Request, res: Response) => {
             }
         }
 
-        // Count the existing users to assign a new ID
-        const count = await User.countDocuments({}, {hint: "_id_"})
-
-        // Create a new user
-        const user = new User({
-            id: count + 1,
-            email: email,
-            username: username,
-            profileImageUrl: imageName,
-            name: name,
-            gender: gender,
-            code: ""
-        })
+        user.profileImageUrl = imageName
+        user.username = username
+        user.name = name
+        user.gender = gender
 
         // Save the user to the database
-        const createdUser = await user.save()
+        const savedUser = await user.save()
 
         // Respond with the newly created user
-        res.status(201).json({user: createdUser})
+        res.status(200).json({user: savedUser})
 
     } catch (error: any) {
-        res.status(500).json({error: "Failed to create user", details: error.message})
+        res.status(500).json({error: "Failed to create profile", details: error.message})
     }
 }
 
@@ -111,15 +145,43 @@ const updateUserCode = async (req: Request, res: Response) => {
         await user.save()
 
         // Respond with the fetched user
-        res.status(200).json({ message: "Code updated successfully" })
+        res.status(200).json({message: "Code updated successfully"})
 
     } catch (error: any) {
         res.status(500).json({error: "Failed to update code", details: error.message})
     }
 }
 
+const verifyUsername = async (req: Request, res: Response) => {
+    // Check if username already exists for any user
+
+    try {
+        const username = req.params.username
+
+        if (!username) {
+            res.status(400).json({error: "Username not present"})
+            return
+        }
+
+        const exists = await User.exists({username: username})
+
+        if (exists) {
+            res.status(404).json({error: "Username is taken"})
+            return
+        }
+
+        // Respond with the fetched user
+        res.status(200).json({message: "Username available"})
+
+    } catch (error: any) {
+        res.status(500).json({error: "Failed to verify username", details: error.message})
+    }
+}
+
 export default {
     createUser,
+    createProfile,
     getUserDetailsById,
-    updateUserCode
+    updateUserCode,
+    verifyUsername
 }

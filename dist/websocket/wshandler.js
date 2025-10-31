@@ -45,17 +45,6 @@ const handleMessage = (ws, data) => __awaiter(void 0, void 0, void 0, function* 
         else {
             console.log(`Receiver ${msg.receiverId} is not connected or socket not open`);
         }
-        /* const newChat = new Chat({
-             id: msg.id,
-             senderId: msg.senderId,
-             receiverId: msg.receiverId,
-             chat: msg.chat,
-             attachment: msg.attachment || '',
-             participants: [msg.senderId, msg.receiverId]
-         })
- 
-         await newChat.save()
- */
         // (Optional) Acknowledge to sender
         ws.send(JSON.stringify(msg));
         console.log(`Acknowledgment sent to sender ${msg.senderId}`);

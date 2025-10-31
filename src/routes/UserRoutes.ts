@@ -5,9 +5,13 @@ import multer from "../util/multer";
 
 const router = Router()
 
-router.post("/create", multer.single('image'), userController.createUser)
+router.post("/createUser", userController.createUser)
+
+router.post("/createProfile", multer.single('image'), userController.createUser)
 
 router.get("/profile/:id", userController.getUserDetailsById)
+
+router.post("/verifyUsername/:username", userController.verifyUsername)
 
 router.post("/updateCode/:id", userController.updateUserCode)
 
