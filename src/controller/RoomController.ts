@@ -50,6 +50,11 @@ const joinRoom = async (req: Request, res: Response) => {
             return
         }
 
+        if (room.userId1 == userId) {
+            res.status(409).json({message: "Can not join your own room"})
+            return
+        }
+
         const alreadyJoined = await Room.findOne({userId2 : userId})
 
         if (alreadyJoined) {

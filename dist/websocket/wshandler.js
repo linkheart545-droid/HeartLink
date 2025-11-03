@@ -11,6 +11,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleMessage = exports.getClientSocket = exports.removeClientSocket = exports.setClientSocket = void 0;
 const ws_1 = require("ws");
+const Mood_1 = require("../model/Mood");
+const Room_1 = require("../model/Room");
 const clients = new Map(); // move this to a shared module if needed
 const setClientSocket = (userId, ws) => {
     if (!clients.has(userId)) {
@@ -45,9 +47,23 @@ const handleMessage = (ws, data) => __awaiter(void 0, void 0, void 0, function* 
         else {
             console.log(`Receiver ${msg.receiverId} is not connected or socket not open`);
         }
-        // (Optional) Acknowledge to sender
-        ws.send(JSON.stringify(msg));
-        console.log(`Acknowledgment sent to sender ${msg.senderId}`);
+        const roomExists = yield Room_1.Room.exists({ code: msg.code });
+        if (roomExists) {
+            const count = yield Mood_1.Mood.countDocuments({}, { hint: "_id_" });
+            const newMood = new Mood_1.Mood({
+                id: count + 1,
+                moodId: msg.moodId,
+                senderId: msg.senderId,
+                receiverId: msg.receiverId,
+                code: msg.code
+            });
+            yield newMood.save();
+            ws.send(JSON.stringify({ type: 'Acknowledgment', message: msg }));
+            console.log(`Acknowledgment sent to sender ${msg.senderId}`);
+        }
+        else {
+            ws.send(JSON.stringify({ error: 'No room found for given code' }));
+        }
     }
     catch (error) {
         console.error('Invalid JSON received:', data);

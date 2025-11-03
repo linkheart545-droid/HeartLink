@@ -2,6 +2,7 @@ import {WebSocketServer, WebSocket, RawData} from 'ws'
 import {setClientSocket, removeClientSocket, handleMessage} from './wshandler'
 import http from 'http'
 import { parse } from 'url'
+import {Room} from "../model/Room";
 
 export const setupWebSocket = (server: http.Server) => {
     const wss = new WebSocketServer({ server })

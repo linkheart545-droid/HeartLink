@@ -1,4 +1,6 @@
 import { WebSocket } from 'ws'
+import {Mood} from "../model/Mood";
+import {Room} from "../model/Room";
 
 const clients = new Map<number, WebSocket>() // move this to a shared module if needed
 
@@ -36,9 +38,26 @@ export const handleMessage = async (ws: WebSocket, data: string) => {
             console.log(`Receiver ${msg.receiverId} is not connected or socket not open`)
         }
 
-        // (Optional) Acknowledge to sender
-        ws.send(JSON.stringify(msg))
-        console.log(`Acknowledgment sent to sender ${msg.senderId}`)
+        const roomExists = await Room.exists({ code: msg.code })
+
+        if (roomExists) {
+            const count = await Mood.countDocuments({}, {hint: "_id_"})
+
+            const newMood = new Mood({
+                id: count+1,
+                moodId: msg.moodId,
+                senderId: msg.senderId,
+                receiverId: msg.receiverId,
+                code: msg.code
+            })
+
+            await newMood.save()
+
+            ws.send(JSON.stringify({type : 'Acknowledgment', message : msg}))
+            console.log(`Acknowledgment sent to sender ${msg.senderId}`)
+        } else {
+            ws.send(JSON.stringify({ error: 'No room found for given code' }))
+        }
     } catch (error: any) {
         console.error('Invalid JSON received:', data)
         ws.send(JSON.stringify({ error: 'Invalid message format' }))
