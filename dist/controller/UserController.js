@@ -22,10 +22,44 @@ const randomImageName = () => crypto_1.default.randomBytes(32).toString('hex');
 const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         // Proceed with user creation
-        const { email, username, name, gender } = req.body;
-        const exists = yield User_1.User.findOne({ username: username });
+        const email = req.body.email;
+        if (!email) {
+            res.status(400).json({ error: "Email is missing" });
+            return;
+        }
+        const exists = yield User_1.User.exists({ email: email });
         if (exists) {
-            res.status(400).json({ error: "Username already exists" });
+            res.status(409).json({ message: "User already exists" });
+            return;
+        }
+        // Count the existing users to assign a new ID
+        const count = yield User_1.User.countDocuments({}, { hint: "_id_" });
+        // Create a new user
+        const user = new User_1.User({
+            id: count + 1,
+            email: email,
+            username: "",
+            profileImageUrl: "",
+            name: "",
+            gender: "",
+            code: ""
+        });
+        // Save the user to the database
+        const createdUser = yield user.save();
+        // Respond with the newly created user
+        res.status(201).json({ user: createdUser });
+    }
+    catch (error) {
+        res.status(500).json({ error: "Failed to create user", details: error.message });
+    }
+});
+const createProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Proceed with user creation
+        const { email, username, name, gender } = req.body;
+        const user = yield User_1.User.findOne({ email: email });
+        if (!user) {
+            res.status(404).json({ error: "User with email does not exist" });
             return;
         }
         let imageName = "";
@@ -45,25 +79,17 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 console.log("Failed to upload image. Error : " + error.message);
             }
         }
-        // Count the existing users to assign a new ID
-        const count = yield User_1.User.countDocuments({}, { hint: "_id_" });
-        // Create a new user
-        const user = new User_1.User({
-            id: count + 1,
-            email: email,
-            username: username,
-            profileImageUrl: imageName,
-            name: name,
-            gender: gender,
-            code: ""
-        });
+        user.profileImageUrl = imageName;
+        user.username = username;
+        user.name = name;
+        user.gender = gender;
         // Save the user to the database
-        const createdUser = yield user.save();
+        const savedUser = yield user.save();
         // Respond with the newly created user
-        res.status(201).json({ user: createdUser });
+        res.status(200).json({ user: savedUser });
     }
     catch (error) {
-        res.status(500).json({ error: "Failed to create user", details: error.message });
+        res.status(500).json({ error: "Failed to create profile", details: error.message });
     }
 });
 const getUserDetailsById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -111,8 +137,30 @@ const updateUserCode = (req, res) => __awaiter(void 0, void 0, void 0, function*
         res.status(500).json({ error: "Failed to update code", details: error.message });
     }
 });
+const verifyUsername = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    // Check if username already exists for any user
+    try {
+        const username = req.params.username;
+        if (!username) {
+            res.status(400).json({ error: "Username not present" });
+            return;
+        }
+        const exists = yield User_1.User.exists({ username: username });
+        if (exists) {
+            res.status(404).json({ error: "Username is taken" });
+            return;
+        }
+        // Respond with the fetched user
+        res.status(200).json({ message: "Username available" });
+    }
+    catch (error) {
+        res.status(500).json({ error: "Failed to verify username", details: error.message });
+    }
+});
 exports.default = {
     createUser,
+    createProfile,
     getUserDetailsById,
-    updateUserCode
+    updateUserCode,
+    verifyUsername
 };
