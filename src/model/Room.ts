@@ -3,13 +3,13 @@ import mongoose, { Schema, Document } from "mongoose"
 export interface Room extends Document {
     userId1: number // 1
     userId2: number // 2
-    code: string
+    code: number
 }
 
 const roomSchema = new Schema<Room>({
     userId1: { type: Number, required: true },
     userId2: { type: Number, required: true },
-    code: { type: String, required: true }
+    code: { type: Number, required: true }
 })
 
 roomSchema.index({ code: "text" })

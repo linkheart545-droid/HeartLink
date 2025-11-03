@@ -3,8 +3,8 @@ import roomController from "../controller/RoomController";
 
 const router = Router()
 
-router.post("/generateCode",roomController.generateCode)
+router.get("/generateCode/:userId",roomController.generateCode)
 
-router.post("/updateCode",roomController.updateCode)
+router.post("/joinRoom",roomController.joinRoom)
 
 export default router

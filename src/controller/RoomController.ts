@@ -8,47 +8,52 @@ const generateCode = async (req: Request, res: Response) => {
     try {
         const userId = req.params.userId
 
-        let code = randomCodeGenerator
-        let exists = await Room.exists({code : code })
+        const room = await Room.findOne({userId1 : userId})
 
-        while (exists) {
+        let code = randomCodeGenerator
+        let codeExists = await Room.exists({code : code })
+
+        while (codeExists) {
             code = randomCodeGenerator
-            exists = await Room.exists({code : code})
+            codeExists = await Room.exists({code : code})
         }
 
-        const room = new Room({
-            code : code,
-            userId1 : userId,
-            userId2 : 0,
-        })
+        if (room) {
+            room.code = code
 
-        const savedRoom = await room.save()
-        res.status(201).json({room: savedRoom})
+            const savedRoom = await room.save()
+            res.status(200).json({room: savedRoom})
+        } else {
+            const room = new Room({
+                code : code,
+                userId1 : userId,
+                userId2 : 0,
+            })
+
+            const savedRoom = await room.save()
+            res.status(201).json({room: savedRoom})
+        }
     } catch (error: any) {
         res.status(500).json({error: error.message})
     }
 }
 
-const updateCode = async (req: Request, res: Response) => {
+const joinRoom = async (req: Request, res: Response) => {
     try {
-        const userId = req.params.userId
+        const {userId, code} = req.body
 
-        let code = randomCodeGenerator
-        let exists = await Room.exists({code : code })
+        const room = await Room.findOne({code : code})
 
-        while (exists) {
-            code = randomCodeGenerator
-            exists = await Room.exists({code : code})
+        if (!room) {
+            res.status(404).json({error: "Room not found"})
+            return
         }
 
-        const room = new Room({
-            code : code,
-            userId1 : userId,
-            userId2 : 0,
-        })
+        room.userId2 = userId
 
         const savedRoom = await room.save()
-        res.status(201).json({room: savedRoom})
+
+        res.status(200).json({room: savedRoom})
     } catch (error: any) {
         res.status(500).json({error: error.message})
     }
@@ -56,5 +61,5 @@ const updateCode = async (req: Request, res: Response) => {
 
 export default {
     generateCode,
-    updateCode
+    joinRoom
 }
