@@ -1,7 +1,8 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import http from 'http'
 import { parse } from 'url'
-import { setRoomClient, removeRoomClient, handleRoomMessage } from './roomHandler'
+import {setRoomClient, removeRoomClient, handleRoomMessage, setRoomMap} from './roomHandler'
+import {removeClientSocket} from "./moodHandler";
 
 export const setupRoomSocket = (server: http.Server) => {
     const wssRoom = new WebSocketServer({ noServer: true })
@@ -19,6 +20,7 @@ export const setupRoomSocket = (server: http.Server) => {
     wssRoom.on('connection', (ws: WebSocket, req) => {
         const { query } = parse(req.url!, true)
         const userId = parseInt(query.userId as string)
+        const code = parseInt(query.code as string)
 
         if (!userId || isNaN(userId)) {
             ws.send(JSON.stringify({ error: 'Invalid or missing userId' }))
@@ -26,11 +28,22 @@ export const setupRoomSocket = (server: http.Server) => {
             return
         }
 
-        console.log(`User ${userId} connected to /room`)
-        setRoomClient(userId, ws)
+        if (!isNaN(code)) {
+            setRoomMap(userId,code,ws)
+        }
 
-        ws.on('message', (data) => handleRoomMessage(ws, data.toString()))
-        ws.on('close', () => removeRoomClient(ws))
+        console.log(`User ${userId} connected to /room`)
+        setRoomClient(userId,ws)
+
+        ws.on('message', (data) => {
+            handleRoomMessage(ws, data.toString())
+        })
+
+        ws.on('close', () => {
+            console.log(`Client ${userId} disconnected from /room`)
+            removeRoomClient(ws)
+        })
+
         ws.on('error', (err) => console.log('WebSocket Error:', err))
     })
 }
