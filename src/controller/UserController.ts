@@ -28,13 +28,11 @@ const createUser = async (req: Request, res: Response) => {
         // Count the existing users to assign a new ID
         const count = await User.countDocuments({}, {hint: "_id_"})
 
-        const username = email.split('@')[0]
-
         // Create a new user
         const user = new User({
             id: count + 1,
             email: email,
-            username: username,
+            username: "",
             profileImageUrl: "",
             name: "",
             gender: "",

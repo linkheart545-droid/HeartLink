@@ -34,12 +34,11 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }
         // Count the existing users to assign a new ID
         const count = yield User_1.User.countDocuments({}, { hint: "_id_" });
-        const username = email.split('@')[0];
         // Create a new user
         const user = new User_1.User({
             id: count + 1,
             email: email,
-            username: username,
+            username: "",
             profileImageUrl: "",
             name: "",
             gender: "",

@@ -5,13 +5,16 @@ import dotenv from 'dotenv'
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs"
 import http from 'http'
-import {setupWebSocket} from './websocket/server'
+import {setupRoomSocket} from "./websocket/roomSocket";
+import {setupMoodSocket} from "./websocket/moodSocket";
 
 const app: Express = express()
 const swaggerDocument = YAML.load("./src/openapi/swagger.yaml")
 
 const server = http.createServer(app)
-setupWebSocket(server)
+
+setupMoodSocket(server)
+setupRoomSocket(server)
 
 dotenv.config()
 connectDb()
