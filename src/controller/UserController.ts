@@ -4,6 +4,7 @@ import {DeleteObjectCommand, GetObjectCommand, PutObjectCommand} from "@aws-sdk/
 import crypto from 'crypto'
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner"
 import client from "../util/s3Client"
+import {Room} from "../model/Room";
 
 // Image Name Generator
 const randomImageName = () => crypto.randomBytes(32).toString('hex')
@@ -43,7 +44,7 @@ const createUser = async (req: Request, res: Response) => {
         const createdUser = await user.save()
 
         // Respond with the newly created user
-        res.status(201).json({user: createdUser})
+        res.status(201).json(createdUser)
 
     } catch (error: any) {
         res.status(500).json({error: "Failed to create user", details: error.message})
@@ -90,7 +91,7 @@ const createProfile = async (req: Request, res: Response) => {
         const savedUser = await user.save()
 
         // Respond with the newly created user
-        res.status(200).json({user: savedUser})
+        res.status(200).json(savedUser)
 
     } catch (error: any) {
         res.status(500).json({error: "Failed to create profile", details: error.message})
@@ -152,9 +153,46 @@ const verifyUsername = async (req: Request, res: Response) => {
     }
 }
 
+const getUsersByCode = async (req: Request, res: Response) => {
+    try {
+        const {code} = req.body
+
+        const room = await Room.exists({code : code})
+
+        if (!room) {
+            res.status(404).json({error: "Room not found"})
+            return
+        }
+
+        const users = await User.find({code : code})
+
+        if (!users || users.length == 0) {
+            res.status(404).json({error: "No user found for given code"})
+            return
+        }
+
+        for (const user of users) {
+            if (user.profileImageUrl != '') {
+                const getObjectParams = {
+                    Bucket: process.env.BUCKET_NAME!!,
+                    Key: user.profileImageUrl
+                }
+
+                const command = new GetObjectCommand(getObjectParams)
+                user.profileImageUrl = await getSignedUrl(client, command, {expiresIn: 3600})
+            }
+        }
+
+        res.status(200).json(users)
+    } catch (error: any) {
+        res.status(500).json({message: "Unable to leave room",error: error.message})
+    }
+}
+
 export default {
     createUser,
     createProfile,
     getUserDetailsById,
-    verifyUsername
+    verifyUsername,
+    getUsersByCode
 }

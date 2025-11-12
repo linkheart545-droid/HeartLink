@@ -26,6 +26,12 @@ const createRoomAndAssignCode = async (ownerId: number, joinerId: number, code: 
     const session = await mongoose.startSession()
     session.startTransaction()
     try {
+        const exists = await Room.exists({code: code})
+        if (exists) {
+            console.log(`Room with code ${code} already exists`)
+            await session.abortTransaction()
+        }
+
         // Create the room
         const room = new Room({ userId1: ownerId, userId2: joinerId, code })
         await room.save({ session })

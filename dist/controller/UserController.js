@@ -17,6 +17,7 @@ const client_s3_1 = require("@aws-sdk/client-s3");
 const crypto_1 = __importDefault(require("crypto"));
 const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 const s3Client_1 = __importDefault(require("../util/s3Client"));
+const Room_1 = require("../model/Room");
 // Image Name Generator
 const randomImageName = () => crypto_1.default.randomBytes(32).toString('hex');
 const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -27,9 +28,9 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             res.status(400).json({ error: "Email is missing" });
             return;
         }
-        const exists = yield User_1.User.exists({ email: email });
-        if (exists) {
-            res.status(409).json({ message: "User already exists" });
+        const userA = yield User_1.User.findOne({ email: email });
+        if (userA) {
+            res.status(409).json(userA);
             return;
         }
         // Count the existing users to assign a new ID
@@ -47,7 +48,7 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         // Save the user to the database
         const createdUser = yield user.save();
         // Respond with the newly created user
-        res.status(201).json({ user: createdUser });
+        res.status(201).json(createdUser);
     }
     catch (error) {
         res.status(500).json({ error: "Failed to create user", details: error.message });
@@ -86,7 +87,7 @@ const createProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         // Save the user to the database
         const savedUser = yield user.save();
         // Respond with the newly created user
-        res.status(200).json({ user: savedUser });
+        res.status(200).json(savedUser);
     }
     catch (error) {
         res.status(500).json({ error: "Failed to create profile", details: error.message });
@@ -136,9 +137,39 @@ const verifyUsername = (req, res) => __awaiter(void 0, void 0, void 0, function*
         res.status(500).json({ error: "Failed to verify username", details: error.message });
     }
 });
+const getUsersByCode = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { code } = req.body;
+        const room = yield Room_1.Room.exists({ code: code });
+        if (!room) {
+            res.status(404).json({ error: "Room not found" });
+            return;
+        }
+        const users = yield User_1.User.find({ code: code });
+        if (!users || users.length == 0) {
+            res.status(404).json({ error: "No user found for given code" });
+            return;
+        }
+        for (const user of users) {
+            if (user.profileImageUrl != '') {
+                const getObjectParams = {
+                    Bucket: process.env.BUCKET_NAME,
+                    Key: user.profileImageUrl
+                };
+                const command = new client_s3_1.GetObjectCommand(getObjectParams);
+                user.profileImageUrl = yield (0, s3_request_presigner_1.getSignedUrl)(s3Client_1.default, command, { expiresIn: 3600 });
+            }
+        }
+        res.status(200).json(users);
+    }
+    catch (error) {
+        res.status(500).json({ message: "Unable to leave room", error: error.message });
+    }
+});
 exports.default = {
     createUser,
     createProfile,
     getUserDetailsById,
-    verifyUsername
+    verifyUsername,
+    getUsersByCode
 };

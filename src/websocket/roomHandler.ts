@@ -93,14 +93,32 @@ export const handleRoomMessage = async (ws: WebSocket, data: string) => {
 
             if (joinerSocket && joinerSocket.readyState === WebSocket.OPEN) {
                 console.log(`Owner ${ownerId} confirmed success for code ${code}`)
-                joinerSocket.send(JSON.stringify({type: 'join-success', userId: ownerId, code: code, status: 'success'}))
-                ws.send(JSON.stringify({type: 'ack', userId: ownerId, code: code, status: 'success'}))
-                console.log(`Owner ${ownerId} got ack for successful join of user ${userId} for code ${code}`)
+                joinerSocket.send(JSON.stringify({ type: 'join-success', userId: ownerId, code, status: 'success' }))
 
-                // After both got success , add the room in database
+                // Create room & update user codes in DB
                 await roomController.createRoomAndAssignCode(ownerId, joinerId, code)
+
+                // Notify both clients
+                const finalMsgToOwner = JSON.stringify({ type: 'final', userId: joinerId, code: code, message: 'Room created successfully' })
+                const finalMsgToJoiner = JSON.stringify({ type: 'final', userId: ownerId, code: code, message: 'Room created successfully' })
+                ws.send(finalMsgToOwner)
+                joinerSocket.send(finalMsgToJoiner)
+
+                // Cleanup and disconnect
+                roomClients.delete(ownerId)
+                roomClients.delete(joinerId)
+                roomMap.delete(code)
+
+                setTimeout(() => {
+                    try {
+                        ws.close(1000, 'Room creation complete')
+                        joinerSocket.close(1000, 'Room creation complete')
+                    } catch (err) {
+                        console.error('Error closing sockets:', err)
+                    }
+                }, 300)
             } else {
-                ws.send(JSON.stringify({error: 'Joiner not connected'}))
+                ws.send(JSON.stringify({ error: 'Joiner not connected' }))
             }
         } else {
             ws.send(JSON.stringify({error: 'Invalid status'}))

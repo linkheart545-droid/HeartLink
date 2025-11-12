@@ -1,285 +1,24 @@
 openapi: 3.0.0
 info:
-  title: Instagram Clone
+  title: Heart Link
   version: 1.0.0
   description: This is a REST API application made with Express
   license:
     name: Licensed Under MIT
     url: "https://spdx.org/licenses/MIT.html"
   contact:
-    name: Abhinav Mahalwal
+    name: Maverick Bits
     url: "https://jsonplaceholder.typicode.com"
-
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
 
 paths:
 
-  # User
-  # Controller
+  # User Controller
 
-  # Get following List of User
-  /user/followingList:
-    get:
-      description: Get the following list of user.
-      security:
-        - BearerAuth: [ ]
+  /user/createUser:
+    post:
+      description: Create a new user if the email does not already exist.
       tags:
         - User Controller
-      responses:
-        200:
-          description: Following List retrieved successfully.
-        404:
-          description: User not found.
-        500:
-          description: Internal server error.
-
-  # Get followers List of user
-  /user/followersList:
-    get:
-      description: Get the followers list of user.
-      security:
-        - BearerAuth: [ ]
-      tags:
-        - User Controller
-      responses:
-        200:
-          description: Followers List retrieved successfully.
-        404:
-          description: User not found.
-        500:
-          description: Internal server error.
-
-  # Change visibility of account
-  /user/changeVisibility:
-    patch:
-      description: Change the visibility of a user account
-      security:
-        - BearerAuth: [ ]
-      tags:
-        - User Controller
-      responses:
-        200:
-          description: Success response when visibility is toggled.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Account set to public"
-        404:
-          description: User not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "User not found"
-        500:
-          description: Server error while changing visibility.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Failed to change visibility"
-                  details:
-                    type: object
-                    example: { }
-
-  /user:
-    # Get user details by ID
-    get:
-      tags:
-        - User Controller
-      description: Get user details by ID.
-      security:
-        - BearerAuth: [ ]
-      responses:
-        200:
-          description: User details retrieved successfully.
-        404:
-          description: User not found.
-        500:
-          description: Internal server error.
-
-    # Delete user by ID
-    delete:
-      tags:
-        - User Controller
-      description: Delete a user by their user ID, along with their posts and highlights.
-      security:
-        - BearerAuth: [ ]
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          description: The ID of the user to be deleted.
-          schema:
-            type: integer
-      responses:
-        200:
-          description: User deleted successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "User deleted successfully"
-        404:
-          description: User not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "User not found"
-        500:
-          description: Internal server error.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Failed to delete user"
-                  details:
-                    type: string
-                    example: "Detailed error message here."
-
-  /user/list:
-    # Get all users
-    get:
-      tags:
-        - User Controller
-      description: Retrieve all users.
-      security:
-        - BearerAuth: [ ]
-      responses:
-        200:
-          description: Successfully retrieved all users.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      description: Unique ID of the user.
-                      example: "12345"
-                    username:
-                      type: string
-                      description: The username of the user.
-                      example: "johndoe"
-                    profileImageUrl:
-                      type: string
-                      description: Signed URL for the user's profile image.
-                      example: "https://example.com/signed-url"
-                    posts:
-                      type: array
-                      description: List of posts created by the user.
-                      items:
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                            description: Unique ID of the post.
-                            example: "post123"
-                          postUrl:
-                            type: string
-                            description: Signed URL for the post.
-                            example: "https://example.com/signed-post-url"
-                          comments:
-                            type: array
-                            description: List of comments on the post.
-                            items:
-                              type: object
-                              properties:
-                                id:
-                                  type: string
-                                  description: Unique ID of the comment.
-                                  example: "comment123"
-                                text:
-                                  type: string
-                                  description: The comment text.
-                                  example: "Nice post!"
-                          commentsCount:
-                            type: string
-                            description: Number of comments on the post.
-                            example: "10"
-                    postsCount:
-                      type: string
-                      description: Number of posts by the user.
-                      example: "5"
-                    highlights:
-                      type: array
-                      description: List of highlights created by the user.
-                      items:
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                            description: Unique ID of the highlight.
-                            example: "highlight123"
-                          highlightUrl:
-                            type: string
-                            description: Signed URL for the highlight.
-                            example: "https://example.com/signed-highlight-url"
-                    followersCount:
-                      type: string
-                      description: Number of followers for the user.
-                      example: "100"
-                    followingCount:
-                      type: string
-                      description: Number of users the user is following.
-                      example: "50"
-        500:
-          description: Failed to fetch users due to an internal error.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: Error message.
-                    example: "Failed to fetch users"
-                  details:
-                    type: object
-                    description: Detailed error information.
-
-  # Change Password
-  /user/changePassword:
-    put:
-      tags:
-        - User Controller
-      description: Change password of user.
-      security:
-        - BearerAuth: [ ]
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          description: The ID of the user.
-          schema:
-            type: integer
       requestBody:
         required: true
         content:
@@ -287,100 +26,19 @@ paths:
             schema:
               type: object
               properties:
-                password:
+                email:
                   type: string
-                  example: test@123.
+                  example: "example@gmail.com"
       responses:
         201:
-          description: Password changed successfully.
-        500:
-          description: Internal server error.
-
-  # Update user details
-  /user/details:
-    put:
-      tags:
-        - User Controller
-      description: Update user details.
-      security:
-        - BearerAuth: [ ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                fullName:
-                  type: string
-                  required: false
-                  example: John Doe
-                bio:
-                  type: string
-                  required: false
-                  example: Travel enthusiast.
-                username:
-                  type: string
-                  required: false
-                  example: zufu.kid
-      responses:
-        201:
-          description: User details updated successfully.
-        500:
-          description: Internal server error.
-
-  # Upload profile image
-  /user/profileImage:
-    post:
-      tags:
-        - User Controller
-      description: Upload and update a user's profile image.
-      security:
-        - BearerAuth: [ ]
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                image:
-                  type: string
-                  format: binary
-                  description: The profile image file to upload.
-      responses:
-        200:
-          description: Profile picture updated successfully.
+          description: User created successfully.
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Profile picture updated"
+
         400:
-          description: Bad request if no file is uploaded.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Bad Request"
-        404:
-          description: User not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "User not found"
-        500:
-          description: Internal server error if the image upload or update fails.
+          description: Email missing in request.
           content:
             application/json:
               schema:
@@ -388,209 +46,9 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: "Failed to upload image"
-                  details:
-                    type: string
-                    example: "Detailed error message here."
-
-  # Follow/Unfollow user
-  /user/follow/{followedTo}:
-    post:
-      tags:
-        - User Controller
-      description: Follow or unfollow a user. If already following, it will unfollow, otherwise, it will follow.
-      security:
-        - BearerAuth: [ ]
-      parameters:
-        - name: followedTo
-          in: path
-          required: true
-          description: The ID of the user who is being followed or unfollowed.
-          schema:
-            type: integer
-      responses:
-        200:
-          description: The user has been followed or unfollowed successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "User 123 is now following User 456"
-        404:
-          description: One or both users not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "User not found"
-        500:
-          description: Internal server error.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unknown error occurred"
-
-  # Highlight
-  # Controller
-
-
-  /highlight:
-    # Get all highlights by user
-    get:
-      tags:
-        - Highlight Controller
-      description: Retrieve all highlights for a user.
-      security:
-        - BearerAuth: [ ]
-      responses:
-        200:
-          description: Highlights retrieved successfully.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: integer
-                      example: 1
-                    userId:
-                      type: integer
-                      example: 123
-                    highlightUrl:
-                      type: string
-                      example: "https://example.com/highlight.jpg"
-                    title:
-                      type: string
-                      example: "Vacation Highlights"
-        404:
-          description: User not found or no highlights available.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "User not found"
-        500:
-          description: Internal server error.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Failed to fetch highlights"
-
-  /highlight/{highlightId}:
-    # Delete highlight by ID
-    delete:
-      tags:
-        - Highlight Controller
-      description: Delete a specific highlight of a user.
-      security:
-        - BearerAuth: [ ]
-      parameters:
-        - name: highlightId
-          in: path
-          required: true
-          description: The ID of the highlight to be deleted.
-          schema:
-            type: integer
-      responses:
-        200:
-          description: Highlight deleted successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Highlight deleted"
-        404:
-          description: Highlight not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Highlight not found"
-        500:
-          description: Internal server error.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Unknown error occurred"
-
-    post:
-      tags:
-        - Highlight Controller
-      description: Create a highlight for a user by highlightId (if supported).
-      security:
-        - BearerAuth: [ ]
-      parameters:
-        - name: highlightId
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                title:
-                  type: string
-                  required: true
-      responses:
-        200:
-          description: Highlight created successfully.
-        400:
-          description: Bad request.
-        404:
-          description: User not found.
-        500:
-          description: Internal server error.
-
-    # Get highlight by ID
-    get:
-      tags:
-        - Highlight Controller
-      description: Retrieve a specific highlight of a user.
-      security:
-        - BearerAuth: [ ]
-      parameters:
-        - name: highlightId
-          in: path
-          required: true
-          description: The ID of the highlight to retrieve.
-          schema:
-            type: integer
-      responses:
-        200:
-          description: Highlight retrieved successfully.
+                    example: "Email is missing"
+        409:
+          description: User with the provided email already exists.
           content:
             application/json:
               schema:
@@ -598,28 +56,10 @@ paths:
                 properties:
                   id:
                     type: integer
-                    example: 456
-                  userId:
-                    type: integer
-                    example: 123
-                  highlightUrl:
+                  email:
                     type: string
-                    example: "https://example.com/highlight.jpg"
-                  title:
-                    type: string
-                    example: "Vacation Highlights"
-        404:
-          description: Highlight not found.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Highlight not found"
         500:
-          description: Internal server error.
+          description: Internal server error while creating user.
           content:
             application/json:
               schema:
@@ -627,4 +67,339 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: "Failed to fetch highlight"
+                    example: "Failed to create user"
+                  details:
+                    type: string
+                    example: "Error message"
+
+  /user/createProfile:
+    post:
+      description: Create or update a user profile with details and profile image.
+      tags:
+        - User Controller
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: "example@gmail.com"
+                username:
+                  type: string
+                  example: "abhinav123"
+                name:
+                  type: string
+                  example: "Abhinav Mahalwal"
+                gender:
+                  type: string
+                  example: "Male"
+                image:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: Profile created/updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+        404:
+          description: User with provided email does not exist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "User with email does not exist"
+        500:
+          description: Server error while creating profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to create profile"
+                  details:
+                    type: string
+                    example: "Error message"
+
+  /user/profile/{id}:
+    get:
+      description: Get user details by ID including signed profile image URL.
+      tags:
+        - User Controller
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: Unique user ID
+      responses:
+        200:
+          description: User details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+        404:
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "User not found"
+        500:
+          description: Server error while fetching user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to fetch user"
+                  details:
+                    type: string
+                    example: "Error message"
+
+  /user/verifyUsername/{username}:
+    post:
+      description: Verify if a username is available for registration.
+      tags:
+        - User Controller
+      parameters:
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+          description: Username to verify
+      responses:
+        200:
+          description: Username is available.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Username available"
+        400:
+          description: Username not provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Username not present"
+        409:
+          description: Username already taken.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Username is taken"
+        500:
+          description: Internal server error while verifying username.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to verify username"
+                  details:
+                    type: string
+                    example: "Error message"
+
+  /user/profileByCode:
+    post:
+      description: Get all users belonging to a specific room code.
+      tags:
+        - User Controller
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "48291"
+      responses:
+        200:
+          description: Users retrieved successfully for the given code.
+
+        404:
+          description: No users or room found for the provided code.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Room not found"
+        500:
+          description: Server error while fetching users by code.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unable to leave room"
+                  error:
+                    type: string
+                    example: "Error message"
+
+  # Room Controller
+
+  /room/generateCode:
+    get:
+      description: Generate a unique random room code that does not already exist.
+      tags:
+        - Room Controller
+      responses:
+        200:
+          description: Code generated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: "48291"
+        500:
+          description: Server error while generating code.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unable to generate code"
+                  error:
+                    type: string
+                    example: "Error message"
+
+  /room/leaveRoom:
+    post:
+      description: Delete an existing room and remove the code from both users.
+      tags:
+        - Room Controller
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "48291"
+      responses:
+        200:
+          description: Room deleted successfully and users updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Room deleted successfully"
+        404:
+          description: Room not found for the provided code.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Room not found"
+        500:
+          description: Server error while leaving room.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Unable to leave room"
+                  error:
+                    type: string
+                    example: "Error message"
+
+  # Mood Controller
+
+  /mood/all:
+    post:
+      description: Retrieve all past moods for a given room code.
+      tags:
+        - Mood Controller
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "48291"
+      responses:
+        200:
+          description: Past moods retrieved successfully.
+
+        404:
+          description: Room not found or no moods exist for the given code.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No room found for given code"
+        500:
+          description: Internal server error while fetching moods.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Failed to fetch past moods"
+                  error:
+                    type: string
+                    example: "Error message"
+

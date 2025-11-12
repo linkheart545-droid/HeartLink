@@ -3,6 +3,6 @@ import moodController from "../controller/MoodController";
 
 const router = Router()
 
-router.get("/all", moodController.getPastMoodsList)
+router.post("/all", moodController.getPastMoodsList)
 
 export default router

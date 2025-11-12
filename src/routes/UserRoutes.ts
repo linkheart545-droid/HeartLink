@@ -13,4 +13,6 @@ router.get("/profile/:id", userController.getUserDetailsById)
 
 router.post("/verifyUsername/:username", userController.verifyUsername)
 
+router.post("/profileByCode/", userController.getUsersByCode)
+
 export default router

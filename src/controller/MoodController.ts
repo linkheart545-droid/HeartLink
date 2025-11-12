@@ -19,6 +19,7 @@ const getPastMoodsList = async(req: Request, res: Response) => {
 
     res.status(200).json(moods)
 }
+
 export default {
     getPastMoodsList
 }

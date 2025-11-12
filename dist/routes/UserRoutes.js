@@ -11,4 +11,5 @@ router.post("/createUser", UserController_1.default.createUser);
 router.post("/createProfile", multer_1.default.single('image'), UserController_1.default.createProfile);
 router.get("/profile/:id", UserController_1.default.getUserDetailsById);
 router.post("/verifyUsername/:username", UserController_1.default.verifyUsername);
+router.post("/profileByCode/", UserController_1.default.getUsersByCode);
 exports.default = router;
