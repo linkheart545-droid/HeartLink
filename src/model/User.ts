@@ -22,6 +22,6 @@ const userSchema = new Schema<User>({
   createdAt: { type: Date, default: Date.now },
 })
 
-userSchema.index({ username: "text", email: "text" })
+userSchema.index({ email: "text" })
 
 export const User = mongoose.model<User>("User", userSchema, "users")
