@@ -4,15 +4,13 @@ import {Room} from "../model/Room";
 import {User} from "../model/User";
 import mongoose from "mongoose";
 
-const randomCodeGenerator = randomInt(0,100000)
-
 const generateCode = async (req: Request, res: Response) => {
     try {
-        let code = randomCodeGenerator
+        let code = randomInt(0,100000)
         let codeExists = await Room.exists({code : code.toString() })
 
         while (codeExists) {
-            code = randomCodeGenerator
+            code = randomInt(0,100000)
             codeExists = await Room.exists({code : code.toString()})
         }
 
