@@ -22,7 +22,7 @@ const createUser = async (req: Request, res: Response) => {
         const userA = await User.findOne({email: email})
 
         if (userA) {
-            res.status(409).json(userA)
+            res.status(200).json(userA)
             return
         }
 
