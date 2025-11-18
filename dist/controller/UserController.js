@@ -30,7 +30,7 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         }
         const userA = yield User_1.User.findOne({ email: email });
         if (userA) {
-            res.status(409).json(userA);
+            res.status(200).json(userA);
             return;
         }
         // Count the existing users to assign a new ID

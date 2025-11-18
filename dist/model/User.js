@@ -37,7 +37,7 @@ exports.User = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 const userSchema = new mongoose_1.Schema({
     id: { type: Number, unique: true, required: true },
-    username: { type: String, unique: true },
+    username: { type: String, default: "" },
     email: { type: String, unique: true, required: true },
     profileImageUrl: { type: String, default: "" },
     name: { type: String, default: "" },
@@ -45,5 +45,5 @@ const userSchema = new mongoose_1.Schema({
     code: { type: String, default: "" },
     createdAt: { type: Date, default: Date.now },
 });
-userSchema.index({ username: "text", email: "text" });
+userSchema.index({ email: "text" });
 exports.User = mongoose_1.default.model("User", userSchema, "users");
