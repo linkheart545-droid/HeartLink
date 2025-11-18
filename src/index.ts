@@ -13,7 +13,7 @@ const swaggerDocument = YAML.load("./src/openapi/swagger.yaml")
 
 const server = http.createServer(app)
 
-setupMoodSocket(server)
+// setupMoodSocket(server)
 setupRoomSocket(server)
 
 dotenv.config()

@@ -4,5 +4,6 @@ import moodController from "../controller/MoodController";
 const router = Router()
 
 router.post("/all", moodController.getPastMoodsList)
+router.get("/last/:id", moodController.getLastMood)
 
 export default router
