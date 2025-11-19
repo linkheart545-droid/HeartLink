@@ -7,11 +7,14 @@ import YAML from "yamljs"
 import http from 'http'
 import {setupRoomSocket} from "./websocket/roomSocket";
 import {setupMoodSocket} from "./websocket/moodSocket";
+import {setupFirebase} from "./fcm/setupFirebase";
 
 const app: Express = express()
 const swaggerDocument = YAML.load("./src/openapi/swagger.yaml")
 
 const server = http.createServer(app)
+
+setupFirebase()
 
 // setupMoodSocket(server)
 setupRoomSocket(server)

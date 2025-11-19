@@ -5,5 +5,6 @@ const router = Router()
 
 router.post("/all", moodController.getPastMoodsList)
 router.get("/last/:id", moodController.getLastMood)
+router.post("/send", moodController.sendMood)
 
 export default router

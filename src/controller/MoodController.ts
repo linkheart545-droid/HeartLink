@@ -5,6 +5,7 @@ import {User} from "../model/User";
 import {GetObjectCommand} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import client from "../util/s3Client";
+import {sendNotificationToUser} from "../fcm/NotificationService";
 
 const getPastMoodsList = async(req: Request, res: Response) => {
     const code = req.body.code
@@ -92,7 +93,40 @@ const getLastMood = async(req: Request, res: Response) => {
     res.status(200).json(mood)
 }
 
+const sendMood = async(req: Request, res: Response) => {
+    const {title, body, moodId, senderId, receiverId} = req.body
+
+    const codeWrapper = await User.findOne({id: senderId}).select('code')
+    if (!codeWrapper) {
+        res.status(404).json({error: "Could not find room code"})
+        return
+    }
+
+    const count = await Mood.countDocuments({}, { hint: '_id_' })
+
+    const newMood = new Mood({
+        id: count+1,
+        senderId: senderId,
+        receiverId: receiverId,
+        moodId: moodId,
+        code: codeWrapper.code
+    })
+
+    const mood = await newMood.save()
+
+    await sendNotificationToUser(receiverId, {
+        title: title,
+        body: body,
+        moodId: moodId,
+        receiverId: receiverId,
+        senderId: senderId
+    });
+
+    res.status(200).json(mood)
+}
+
 export default {
     getPastMoodsList,
-    getLastMood
+    getLastMood,
+    sendMood
 }

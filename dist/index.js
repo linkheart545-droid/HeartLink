@@ -11,11 +11,12 @@ const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const yamljs_1 = __importDefault(require("yamljs"));
 const http_1 = __importDefault(require("http"));
 const roomSocket_1 = require("./websocket/roomSocket");
-const moodSocket_1 = require("./websocket/moodSocket");
+const setupFirebase_1 = require("./fcm/setupFirebase");
 const app = (0, express_1.default)();
 const swaggerDocument = yamljs_1.default.load("./src/openapi/swagger.yaml");
 const server = http_1.default.createServer(app);
-(0, moodSocket_1.setupMoodSocket)(server);
+(0, setupFirebase_1.setupFirebase)();
+// setupMoodSocket(server)
 (0, roomSocket_1.setupRoomSocket)(server);
 dotenv_1.default.config();
 (0, db_1.default)();
