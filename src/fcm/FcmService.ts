@@ -1,12 +1,9 @@
 // src/util/fcmService.ts
-import { getMessaging } from './setupFirebase';
+import {getMessaging} from './setupFirebase';
 import type admin from 'firebase-admin';
-import { FcmToken } from '../model/FcmToken';
+import {FcmToken} from '../model/FcmToken';
 
 export interface PushPayload {
-    title: string
-    body: string
-    imageUrl?: string
     moodId: string,
     senderId: string,
     receiverId: string,
@@ -27,9 +24,8 @@ export async function sendPushToTokens(
     const message: admin.messaging.MulticastMessage = {
         tokens,
         notification: {
-            title: payload.title,
-            body: payload.body,
-            imageUrl: payload.imageUrl,
+            title: "Heart Link",
+            body: "Mood just got updated",
         },
         data: {
             moodId: payload.moodId,
@@ -79,7 +75,7 @@ export async function sendPushToTokens(
         console.log('Deleting invalid tokens:', tokensToDelete);
 
         await FcmToken.deleteMany({
-            token: { $in: tokensToDelete },
+            token: {$in: tokensToDelete},
         });
     }
 

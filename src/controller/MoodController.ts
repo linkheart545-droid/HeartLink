@@ -67,34 +67,8 @@ const getPastMoodsList = async(req: Request, res: Response) => {
     res.status(200).json(list)
 }
 
-const getLastMood = async(req: Request, res: Response) => {
-    const partnerId = parseInt(req.params.id)
-    const codeWrapper = await User.findOne({id: partnerId}).select('code')
-
-    if (!codeWrapper) {
-        res.status(404).json({error: "Could not find last mood"})
-        return
-    }
-
-    const mood = await Mood.findOne({ code: codeWrapper.code })
-        .sort({ timestamp: -1 });   // newest date first
-    const room = await Room.exists({ code: codeWrapper.code })
-
-    if (!room) {
-        res.status(404).json({error: "No room found for given code"})
-        return
-    }
-
-    if (!mood) {
-        res.status(404).json({error: "Could not find last mood"})
-        return
-    }
-
-    res.status(200).json(mood)
-}
-
 const sendMood = async(req: Request, res: Response) => {
-    const {title, body, moodId, senderId, receiverId} = req.body
+    const {moodId, senderId, receiverId} = req.body
 
     const codeWrapper = await User.findOne({id: senderId}).select('code')
     if (!codeWrapper) {
@@ -115,8 +89,6 @@ const sendMood = async(req: Request, res: Response) => {
     const mood = await newMood.save()
 
     await sendNotificationToUser(receiverId, {
-        title: title,
-        body: body,
         moodId: moodId,
         receiverId: receiverId,
         senderId: senderId
@@ -127,6 +99,5 @@ const sendMood = async(req: Request, res: Response) => {
 
 export default {
     getPastMoodsList,
-    getLastMood,
     sendMood
 }
