@@ -67,28 +67,8 @@ const getPastMoodsList = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
     res.status(200).json(list);
 });
-const getLastMood = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const partnerId = parseInt(req.params.id);
-    const codeWrapper = yield User_1.User.findOne({ id: partnerId }).select('code');
-    if (!codeWrapper) {
-        res.status(404).json({ error: "Could not find last mood" });
-        return;
-    }
-    const mood = yield Mood_1.Mood.findOne({ code: codeWrapper.code })
-        .sort({ timestamp: -1 }); // newest date first
-    const room = yield Room_1.Room.exists({ code: codeWrapper.code });
-    if (!room) {
-        res.status(404).json({ error: "No room found for given code" });
-        return;
-    }
-    if (!mood) {
-        res.status(404).json({ error: "Could not find last mood" });
-        return;
-    }
-    res.status(200).json(mood);
-});
 const sendMood = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { title, body, moodId, senderId, receiverId } = req.body;
+    const { moodId, senderId, receiverId } = req.body;
     const codeWrapper = yield User_1.User.findOne({ id: senderId }).select('code');
     if (!codeWrapper) {
         res.status(404).json({ error: "Could not find room code" });
@@ -97,15 +77,13 @@ const sendMood = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const count = yield Mood_1.Mood.countDocuments({}, { hint: '_id_' });
     const newMood = new Mood_1.Mood({
         id: count + 1,
-        senderId: senderId,
-        receiverId: receiverId,
+        senderId: parseInt(senderId),
+        receiverId: parseInt(receiverId),
         moodId: moodId,
         code: codeWrapper.code
     });
     const mood = yield newMood.save();
     yield (0, NotificationService_1.sendNotificationToUser)(receiverId, {
-        title: title,
-        body: body,
         moodId: moodId,
         receiverId: receiverId,
         senderId: senderId
@@ -114,6 +92,5 @@ const sendMood = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.default = {
     getPastMoodsList,
-    getLastMood,
     sendMood
 };

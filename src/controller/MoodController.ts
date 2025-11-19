@@ -80,8 +80,8 @@ const sendMood = async(req: Request, res: Response) => {
 
     const newMood = new Mood({
         id: count+1,
-        senderId: senderId,
-        receiverId: receiverId,
+        senderId: parseInt(senderId),
+        receiverId: parseInt(receiverId),
         moodId: moodId,
         code: codeWrapper.code
     })

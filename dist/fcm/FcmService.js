@@ -24,9 +24,8 @@ function sendPushToTokens(tokens, payload) {
         const message = {
             tokens,
             notification: {
-                title: payload.title,
-                body: payload.body,
-                imageUrl: payload.imageUrl,
+                title: "Heart Link",
+                body: "Mood just got updated",
             },
             data: {
                 moodId: payload.moodId,

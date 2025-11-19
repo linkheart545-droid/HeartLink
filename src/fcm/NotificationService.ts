@@ -13,7 +13,6 @@ export async function sendNotificationToUser(
     if (tokens.length === 0) {
         console.log('No tokens for user', userId)
         return
-
     }
 
     await sendPushToTokens(tokens, payload)
