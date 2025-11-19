@@ -23,21 +23,14 @@ function sendPushToTokens(tokens, payload) {
         const messaging = (0, setupFirebase_1.getMessaging)();
         const message = {
             tokens,
-            notification: {
-                title: "Heart Link",
-                body: "Mood just got updated",
-            },
             data: {
                 moodId: payload.moodId,
                 receiverId: payload.receiverId,
-                senderId: payload.senderId
+                senderId: payload.senderId,
+                timestamp: Date.now().toString(),
             },
             android: {
-                priority: 'high',
-                notification: {
-                    sound: 'default',
-                    channelId: 'default',
-                },
+                priority: 'high', // Keep this for reliable delivery
             },
         };
         const response = yield messaging.sendEachForMulticast(message);

@@ -23,23 +23,16 @@ export async function sendPushToTokens(
 
     const message: admin.messaging.MulticastMessage = {
         tokens,
-        notification: {
-            title: "Heart Link",
-            body: "Mood just got updated",
-        },
         data: {
             moodId: payload.moodId,
             receiverId: payload.receiverId,
-            senderId: payload.senderId
+            senderId: payload.senderId,
+            timestamp: Date.now().toString(),
         },
         android: {
-            priority: 'high',
-            notification: {
-                sound: 'default',
-                channelId: 'default',
-            },
+            priority: 'high', // Keep this for reliable delivery
         },
-    };
+    }
 
     const response = await messaging.sendEachForMulticast(message);
     console.log(
