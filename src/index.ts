@@ -6,7 +6,7 @@ import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs"
 import http from 'http'
 import {setupRoomSocket} from "./websocket/roomSocket";
-import {setupMoodSocket} from "./websocket/moodSocket";
+import {setupChatSocket} from "./websocket/chatSocket";
 import {setupFirebase} from "./fcm/setupFirebase";
 
 const app: Express = express()
@@ -16,7 +16,7 @@ const server = http.createServer(app)
 
 setupFirebase()
 
-// setupMoodSocket(server)
+setupChatSocket(server)
 setupRoomSocket(server)
 
 dotenv.config()

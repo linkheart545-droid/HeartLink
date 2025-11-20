@@ -1,6 +1,10 @@
-import { WebSocket } from 'ws'
+import {WebSocket} from 'ws'
 import {Mood} from "../model/Mood";
 import {Room} from "../model/Room";
+import {Chat} from "../model/Chat";
+import {GetObjectCommand} from "@aws-sdk/client-s3";
+import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
+import client from "../util/s3Client";
 
 const clients = new Map<number, WebSocket>() // move this to a shared module if needed
 
@@ -29,6 +33,18 @@ export const handleMessage = async (ws: WebSocket, data: string) => {
         const msg = JSON.parse(data)
         console.log(`Handling message from ${msg.senderId} to ${msg.receiverId}:`, msg)
 
+        const imageName = msg.attachment
+
+        if (imageName && imageName.length != 0) {
+            const getObjectParams = {
+                Bucket: process.env.BUCKET_NAME!!,
+                Key: imageName
+            }
+
+            const command = new GetObjectCommand(getObjectParams)
+            msg.attachment = await getSignedUrl(client, command, {expiresIn: 3600})
+        }
+
         // Check if the receiver is connected
         const receiverSocket = getClientSocket(msg.receiverId)
         if (receiverSocket && receiverSocket.readyState === WebSocket.OPEN) {
@@ -38,28 +54,24 @@ export const handleMessage = async (ws: WebSocket, data: string) => {
             console.log(`Receiver ${msg.receiverId} is not connected or socket not open`)
         }
 
-        const roomExists = await Room.exists({ code: msg.code })
+        const count = await Chat.countDocuments({}, {hint: '_id_'})
 
-        if (roomExists) {
-            const count = await Mood.countDocuments({}, {hint: "_id_"})
+        const newChat = new Chat({
+            id: count + 1,
+            senderId: msg.senderId,
+            receiverId: msg.receiverId,
+            code: msg.code,
+            message: msg.message,
+            attachment: imageName ?? "",
+            timestamp: msg.timestamp
+        })
 
-            const newMood = new Mood({
-                id: count+1,
-                moodId: msg.moodId,
-                senderId: msg.senderId,
-                receiverId: msg.receiverId,
-                code: msg.code
-            })
+        await newChat.save()
 
-            await newMood.save()
-
-            ws.send(JSON.stringify({type : 'Acknowledgment', message : msg}))
-            console.log(`Acknowledgment sent to sender ${msg.senderId}`)
-        } else {
-            ws.send(JSON.stringify({ error: 'No room found for given code' }))
-        }
+        ws.send(JSON.stringify({type: 'Acknowledgment', message: msg}))
+        console.log(`Acknowledgment sent to sender ${msg.senderId}`)
     } catch (error: any) {
         console.error('Invalid JSON received:', data)
-        ws.send(JSON.stringify({ error: 'Invalid message format' }))
+        ws.send(JSON.stringify({error: 'Invalid message format'}))
     }
 }

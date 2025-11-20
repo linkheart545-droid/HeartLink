@@ -647,3 +647,79 @@ paths:
                     type: string
                     example: "Internal server error"
 
+  # Chat Controller
+
+  /chat/getMessages/{code}:
+    get:
+      tags:
+        - Chat Controller
+      description: Get chats by code
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Chat code
+      responses:
+        "200":
+          description: List of chats
+          content:
+            application/json:
+              schema:
+                type: array
+        "404":
+          description: No chats found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "500":
+          description: Server error
+
+  /chat/sendAttachment:
+    post:
+      tags:
+        - Chat Controller
+      description: Upload chat attachment
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        "200":
+          description: Uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Generated image name (S3 key)
+        "404":
+          description: No file uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "500":
+          description: Failed to upload image
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string

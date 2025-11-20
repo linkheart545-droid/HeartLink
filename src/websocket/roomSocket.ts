@@ -2,7 +2,6 @@ import { WebSocketServer, WebSocket } from 'ws'
 import http from 'http'
 import { parse } from 'url'
 import {setRoomClient, removeRoomClient, handleRoomMessage, setRoomMap} from './roomHandler'
-import {removeClientSocket} from "./moodHandler";
 
 export const setupRoomSocket = (server: http.Server) => {
     const wssRoom = new WebSocketServer({ noServer: true })

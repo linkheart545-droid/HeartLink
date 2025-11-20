@@ -9,12 +9,14 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const RoomRoutes_1 = __importDefault(require("./routes/RoomRoutes"));
 const MoodRoutes_1 = __importDefault(require("./routes/MoodRoutes"));
 const FcmRoutes_1 = __importDefault(require("./routes/FcmRoutes"));
+const ChatRoutes_1 = __importDefault(require("./routes/ChatRoutes"));
 dotenv_1.default.config();
 const route = (0, express_1.Router)();
 route.use('/user', UserRoutes_1.default); // User Routes
 route.use('/room', RoomRoutes_1.default); // Room Routes
 route.use('/mood', MoodRoutes_1.default); // User Routes
 route.use('/push', FcmRoutes_1.default); // Fcm Routes
+route.use('/chat', ChatRoutes_1.default); // Fcm Routes
 // Test Route
 route.get('/', (_req, res) => {
     res.send('Server is working !!');

@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import RoomRoutes from "./routes/RoomRoutes";
 import MoodRoutes from "./routes/MoodRoutes";
 import FcmRoutes from "./routes/FcmRoutes";
+import ChatRoutes from "./routes/ChatRoutes";
 dotenv.config()
 
 const route = Router()
@@ -12,6 +13,7 @@ route.use('/user', UserRoutes) // User Routes
 route.use('/room', RoomRoutes) // Room Routes
 route.use('/mood', MoodRoutes) // User Routes
 route.use('/push', FcmRoutes) // Fcm Routes
+route.use('/chat', ChatRoutes) // Fcm Routes
 
 // Test Route
 route.get('/', (_req: Request, res: Response) => {

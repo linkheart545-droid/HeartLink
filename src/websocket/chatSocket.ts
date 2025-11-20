@@ -1,23 +1,23 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import http from 'http'
 import { parse } from 'url'
-import { setClientSocket, removeClientSocket, handleMessage } from './moodHandler'
+import { setClientSocket, removeClientSocket, handleMessage } from './chatHandler'
 
-export const setupMoodSocket = (server: http.Server) => {
-    const wssMood = new WebSocketServer({ noServer: true })
+export const setupChatSocket = (server: http.Server) => {
+    const wssChat = new WebSocketServer({ noServer: true })
 
     server.on('upgrade', (req, socket, head) => {
         const pathname = new URL(req.url!, `http://${req.headers.host}`).pathname
 
-        if (pathname === '/mood') {
-            wssMood.handleUpgrade(req, socket, head, (ws) => {
-                wssMood.emit('connection', ws, req)
+        if (pathname === '/chat') {
+            wssChat.handleUpgrade(req, socket, head, (ws) => {
+                wssChat.emit('connection', ws, req)
             })
         }
     })
 
-    wssMood.on('connection', (ws: WebSocket, req) => {
-        console.log('Client connected to /mood')
+    wssChat.on('connection', (ws: WebSocket, req) => {
+        console.log('Client connected to /chat')
 
         const { query } = parse(req.url!, true)
         const userId = parseInt(query.userId as string)
@@ -43,7 +43,7 @@ export const setupMoodSocket = (server: http.Server) => {
         })
 
         ws.on('close', () => {
-            console.log(`Client ${userId} disconnected from /mood`)
+            console.log(`Client ${userId} disconnected from /chat`)
             removeClientSocket(ws)
         })
 
