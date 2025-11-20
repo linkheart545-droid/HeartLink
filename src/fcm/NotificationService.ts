@@ -1,19 +1,16 @@
 import { FcmToken } from '../model/FcmToken';
-import { PushPayload, sendPushToTokens} from './FcmService'
+import { PushPayload, sendPushToToken} from './FcmService'
 
 export async function sendNotificationToUser(
     userId: string,
     payload: PushPayload
 ) {
+    const tokenWrapper = await FcmToken.findOne({ userId });
 
-    const tokens = await FcmToken.find({ userId })
-        .distinct('token')
-        .exec()
-
-    if (tokens.length === 0) {
-        console.log('No tokens for user', userId)
-        return
+    if (!tokenWrapper || !tokenWrapper.token) {
+        console.log('No token for user', userId);
+        throw new Error('No FCM token for user');
     }
 
-    await sendPushToTokens(tokens, payload)
+    return sendPushToToken(tokenWrapper.token, payload);
 }

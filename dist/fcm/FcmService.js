@@ -9,53 +9,47 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendPushToTokens = sendPushToTokens;
+exports.sendPushToToken = sendPushToToken;
 // src/util/fcmService.ts
 const setupFirebase_1 = require("./setupFirebase");
 const FcmToken_1 = require("../model/FcmToken");
-function sendPushToTokens(tokens, payload) {
+function sendPushToToken(token, payload) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (tokens.length === 0) {
-            console.log('No tokens to send');
-            // @ts-expect-error: we return early, so caller should handle this case
-            return;
+        var _a, _b, _c, _d;
+        if (!token) {
+            console.log('No token provided');
+            throw new Error('No token provided');
         }
         const messaging = (0, setupFirebase_1.getMessaging)();
         const message = {
-            tokens,
+            token,
             data: {
-                moodId: payload.moodId,
-                receiverId: payload.receiverId,
-                senderId: payload.senderId
+                moodId: String((_a = payload.moodId) !== null && _a !== void 0 ? _a : ''),
+                receiverId: String((_b = payload.receiverId) !== null && _b !== void 0 ? _b : ''),
+                senderId: String((_c = payload.senderId) !== null && _c !== void 0 ? _c : ''),
+                timestamp: String((_d = payload.timestamp) !== null && _d !== void 0 ? _d : ''),
             },
             android: {
-                priority: 'high', // Keep this for reliable delivery
+                priority: 'high',
             },
         };
-        const response = yield messaging.sendEachForMulticast(message);
-        console.log('Multicast send result:', response.successCount, 'success,', response.failureCount, 'failed');
-        // Clean up invalid tokens
-        const tokensToDelete = [];
-        response.responses.forEach((resp, idx) => {
-            if (!resp.success) {
-                const error = resp.error;
-                console.error('Error sending to token:', tokens[idx], error === null || error === void 0 ? void 0 : error.code);
-                // These are common error codes for invalid / unregistered tokens
-                if (error &&
-                    [
-                        'messaging/invalid-registration-token',
-                        'messaging/registration-token-not-registered',
-                    ].includes(error.code)) {
-                    tokensToDelete.push(tokens[idx]);
-                }
-            }
-        });
-        if (tokensToDelete.length > 0) {
-            console.log('Deleting invalid tokens:', tokensToDelete);
-            yield FcmToken_1.FcmToken.deleteMany({
-                token: { $in: tokensToDelete },
-            });
+        try {
+            const messageId = yield messaging.send(message);
+            console.log('Unicast send result: success, messageId:', messageId);
+            return messageId;
         }
-        return response;
+        catch (error) {
+            console.error('Error sending to token:', token, (error === null || error === void 0 ? void 0 : error.code) || (error === null || error === void 0 ? void 0 : error.message));
+            if (error &&
+                [
+                    'messaging/invalid-registration-token',
+                    'messaging/registration-token-not-registered',
+                ].includes(error.code)) {
+                console.log('Deleting invalid token:', token);
+                yield FcmToken_1.FcmToken.deleteMany({ token });
+            }
+            // IMPORTANT: rethrow so caller knows it failed
+            throw error;
+        }
     });
 }

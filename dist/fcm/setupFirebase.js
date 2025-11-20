@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupFirebase = setupFirebase;
 exports.getMessaging = getMessaging;
 const firebase_admin_1 = __importDefault(require("firebase-admin"));
+const dotenv_1 = __importDefault(require("dotenv"));
 let app = null;
+dotenv_1.default.config();
 function setupFirebase() {
     if (!app) {
         const projectId = process.env.FIREBASE_PROJECT_ID;

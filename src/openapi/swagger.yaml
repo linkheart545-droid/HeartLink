@@ -276,6 +276,60 @@ paths:
                     type: string
                     example: "Error message"
 
+  /push/saveToken:
+    post:
+      description: Save or update a user's FCM token
+      tags:
+        - FCM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - token
+              properties:
+                userId:
+                  type: integer
+                  example: 1
+                token:
+                  type: string
+                  example: "e1Zo7A1LSbiD8nBjaoWdvo:APA91bE8PSM3OivGAW..."
+      responses:
+        '200':
+          description: Token saved or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Token saved"
+        '400':
+          description: Missing userId or token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "UserId and Token are required"
+        '500':
+          description: Internal server error while saving token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Internal server error"
+
+
   # Room Controller
 
   /room/generateCode:
@@ -402,4 +456,194 @@ paths:
                   error:
                     type: string
                     example: "Error message"
+
+  /mood/send:
+    post:
+      description: Send a mood and notify the receiver
+      tags:
+        - Mood Controller
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - moodId
+                - senderId
+                - receiverId
+              properties:
+                moodId:
+                  type: string
+                  example: "2"
+                senderId:
+                  type: integer
+                  example: 1
+                receiverId:
+                  type: integer
+                  example: 2
+      responses:
+        '200':
+          description: Mood saved, with notification status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  moodSaved:
+                    type: boolean
+                    example: true
+                  notificationSent:
+                    type: boolean
+                    example: true
+                  errorReasonMood:
+                    type: string
+                    nullable: true
+                    example: null
+                  errorReasonNotification:
+                    type: string
+                    nullable: true
+                    example: null
+                  mood:
+                    type: object
+                    description: Saved mood document
+                    properties:
+                      id:
+                        type: integer
+                        example: 5
+                      senderId:
+                        type: integer
+                        example: 1
+                      receiverId:
+                        type: integer
+                        example: 2
+                      moodId:
+                        type: string
+                        example: "2"
+                      code:
+                        type: string
+                        example: "ABCD1234"
+                      timestamp:
+                        type: string
+                        format: date-time
+                        example: "2025-11-20T10:15:30.000Z"
+        '404':
+          description: Sender & receiver same OR room code not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  moodSaved:
+                    type: boolean
+                    example: false
+                  notificationSent:
+                    type: boolean
+                    example: false
+                  errorReasonMood:
+                    type: string
+                    example: "Could not find room code"
+                  errorReasonNotification:
+                    type: string
+                    nullable: true
+                    example: null
+        '500':
+          description: Failed to save mood
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  moodSaved:
+                    type: boolean
+                    example: false
+                  notificationSent:
+                    type: boolean
+                    example: false
+                  errorReasonMood:
+                    type: string
+                    example: "Failed to save mood"
+                  errorReasonNotification:
+                    type: string
+                    nullable: true
+                    example: null
+
+  /mood/last/{id}:
+    get:
+      description: Get last moods where user is sender or receiver
+      tags:
+        - Mood Controller
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Last moods for this user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  moods:
+                    type: array
+                    description: >
+                      At most two items:
+                      latest mood where user is receiver and latest where user is sender.
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 5
+                        senderId:
+                          type: integer
+                          example: 1
+                        receiverId:
+                          type: integer
+                          example: 2
+                        moodId:
+                          type: string
+                          example: "2"
+                        code:
+                          type: string
+                          example: "ABCD1234"
+                        timestamp:
+                          type: string
+                          format: date-time
+                          example: "2025-11-20T10:15:30.000Z"
+        '400':
+          description: Invalid id format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid id"
+        '404':
+          description: No moods found for this user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No moods found for this user"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error"
 

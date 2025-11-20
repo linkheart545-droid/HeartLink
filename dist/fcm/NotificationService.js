@@ -14,13 +14,11 @@ const FcmToken_1 = require("../model/FcmToken");
 const FcmService_1 = require("./FcmService");
 function sendNotificationToUser(userId, payload) {
     return __awaiter(this, void 0, void 0, function* () {
-        const tokens = yield FcmToken_1.FcmToken.find({ userId })
-            .distinct('token')
-            .exec();
-        if (tokens.length === 0) {
-            console.log('No tokens for user', userId);
-            return;
+        const tokenWrapper = yield FcmToken_1.FcmToken.findOne({ userId });
+        if (!tokenWrapper || !tokenWrapper.token) {
+            console.log('No token for user', userId);
+            throw new Error('No FCM token for user');
         }
-        yield (0, FcmService_1.sendPushToTokens)(tokens, payload);
+        return (0, FcmService_1.sendPushToToken)(tokenWrapper.token, payload);
     });
 }

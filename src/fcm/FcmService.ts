@@ -4,74 +4,55 @@ import type admin from 'firebase-admin';
 import {FcmToken} from '../model/FcmToken';
 
 export interface PushPayload {
-    moodId: string,
-    senderId: string,
-    receiverId: string,
-    timestamp: string
+    moodId: string;
+    senderId: string;
+    receiverId: string;
+    timestamp: string;
 }
 
-export async function sendPushToTokens(
-    tokens: string[],
+export async function sendPushToToken(
+    token: string,
     payload: PushPayload
-): Promise<admin.messaging.BatchResponse> {
-    if (tokens.length === 0) {
-        console.log('No tokens to send')
-        // @ts-expect-error: we return early, so caller should handle this case
-        return
+): Promise<string> {
+    if (!token) {
+        console.log('No token provided');
+        throw new Error('No token provided');
     }
 
     const messaging = getMessaging();
 
-    const message: admin.messaging.MulticastMessage = {
-        tokens,
+    const message: admin.messaging.Message = {
+        token,
         data: {
-            moodId: payload.moodId,
-            receiverId: payload.receiverId,
-            senderId: payload.senderId,
-            timestamp: payload.timestamp
+            moodId: String(payload.moodId ?? ''),
+            receiverId: String(payload.receiverId ?? ''),
+            senderId: String(payload.senderId ?? ''),
+            timestamp: String(payload.timestamp ?? ''),
         },
         android: {
-            priority: 'high', // Keep this for reliable delivery
+            priority: 'high',
         },
-    }
+    };
 
-    const response = await messaging.sendEachForMulticast(message);
-    console.log(
-        'Multicast send result:',
-        response.successCount,
-        'success,',
-        response.failureCount,
-        'failed'
-    );
+    try {
+        const messageId = await messaging.send(message);
+        console.log('Unicast send result: success, messageId:', messageId);
+        return messageId;
+    } catch (error: any) {
+        console.error('Error sending to token:', token, error?.code || error?.message);
 
-    // Clean up invalid tokens
-    const tokensToDelete: string[] = [];
-
-    response.responses.forEach((resp, idx) => {
-        if (!resp.success) {
-            const error = resp.error;
-            console.error('Error sending to token:', tokens[idx], error?.code);
-
-            // These are common error codes for invalid / unregistered tokens
-            if (
-                error &&
-                [
-                    'messaging/invalid-registration-token',
-                    'messaging/registration-token-not-registered',
-                ].includes(error.code)
-            ) {
-                tokensToDelete.push(tokens[idx]);
-            }
+        if (
+            error &&
+            [
+                'messaging/invalid-registration-token',
+                'messaging/registration-token-not-registered',
+            ].includes(error.code)
+        ) {
+            console.log('Deleting invalid token:', token);
+            await FcmToken.deleteMany({ token });
         }
-    });
 
-    if (tokensToDelete.length > 0) {
-        console.log('Deleting invalid tokens:', tokensToDelete);
-
-        await FcmToken.deleteMany({
-            token: {$in: tokensToDelete},
-        });
+        // IMPORTANT: rethrow so caller knows it failed
+        throw error;
     }
-
-    return response;
 }

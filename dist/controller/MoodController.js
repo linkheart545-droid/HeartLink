@@ -69,28 +69,120 @@ const getPastMoodsList = (req, res) => __awaiter(void 0, void 0, void 0, functio
 });
 const sendMood = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { moodId, senderId, receiverId } = req.body;
-    const codeWrapper = yield User_1.User.findOne({ id: senderId }).select('code');
-    if (!codeWrapper) {
-        res.status(404).json({ error: "Could not find room code" });
-        return;
+    // flags + error messages
+    let moodSaved = false;
+    let notificationSent = false;
+    let errorReasonMood = null;
+    let errorReasonNotification = null;
+    try {
+        // 1) Save mood
+        try {
+            if (senderId === receiverId) {
+                res.status(404).json({ error: "Sender & Receiver can not be same" });
+                return;
+            }
+            const codeWrapper = yield User_1.User.findOne({ id: senderId }).select('code');
+            if (!codeWrapper) {
+                errorReasonMood = 'Could not find room code';
+                res.status(404).json({
+                    moodSaved: false,
+                    notificationSent: false,
+                    errorReasonMood,
+                    errorReasonNotification,
+                });
+                return;
+            }
+            const count = yield Mood_1.Mood.countDocuments({}, { hint: '_id_' });
+            const newMood = new Mood_1.Mood({
+                id: count + 1,
+                senderId: parseInt(senderId),
+                receiverId: parseInt(receiverId),
+                moodId,
+                code: codeWrapper.code,
+            });
+            const mood = yield newMood.save();
+            moodSaved = true;
+            // 2) Try to send notification
+            try {
+                yield (0, NotificationService_1.sendNotificationToUser)(receiverId, {
+                    moodId: String(moodId),
+                    receiverId: String(receiverId),
+                    senderId: String(senderId),
+                    timestamp: String(mood.timestamp),
+                });
+                notificationSent = true;
+                // both success
+                res.status(200).json({
+                    moodSaved,
+                    notificationSent,
+                    mood,
+                    errorReasonMood,
+                    errorReasonNotification,
+                });
+            }
+            catch (err) {
+                console.error('Notification error:', err);
+                errorReasonNotification = (err === null || err === void 0 ? void 0 : err.message) || 'Notification failed';
+                // mood saved but notification failed
+                // still 200, but tell client what happened
+                res.status(200).json({
+                    moodSaved,
+                    notificationSent,
+                    mood,
+                    errorReasonMood,
+                    errorReasonNotification,
+                });
+            }
+        }
+        catch (err) {
+            console.error('Mood save error:', err);
+            errorReasonMood = (err === null || err === void 0 ? void 0 : err.message) || 'Failed to save mood';
+            // mood failed → notification not attempted
+            res.status(500).json({
+                moodSaved,
+                notificationSent,
+                errorReasonMood,
+                errorReasonNotification,
+            });
+        }
     }
-    const count = yield Mood_1.Mood.countDocuments({}, { hint: '_id_' });
-    const newMood = new Mood_1.Mood({
-        id: count + 1,
-        senderId: parseInt(senderId),
-        receiverId: parseInt(receiverId),
-        moodId: moodId,
-        code: codeWrapper.code
-    });
-    const mood = yield newMood.save();
-    yield (0, NotificationService_1.sendNotificationToUser)(receiverId, {
-        moodId: moodId,
-        receiverId: receiverId,
-        senderId: senderId
-    });
-    res.status(200).json(mood);
+    catch (outerErr) {
+        console.error('Unexpected sendMood error:', outerErr);
+        res.status(500).json({
+            moodSaved,
+            notificationSent,
+            errorReasonMood: errorReasonMood || 'Unexpected server error',
+            errorReasonNotification,
+        });
+    }
+});
+const getLastMood = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const id = parseInt(req.params.id);
+        if (Number.isNaN(id)) {
+            res.status(400).json({ error: 'Invalid id' });
+            return;
+        }
+        // run in parallel
+        const [lastAsReceiver, lastAsSender] = yield Promise.all([
+            Mood_1.Mood.findOne({ receiverId: id }).sort({ timestamp: -1 }).exec(),
+            Mood_1.Mood.findOne({ senderId: id }).sort({ timestamp: -1 }).exec(),
+        ]);
+        if (!lastAsReceiver && !lastAsSender) {
+            res.status(404).json({ error: 'No moods found for this user' });
+            return;
+        }
+        res.status(200).json({
+            moods: [lastAsReceiver, lastAsSender].filter(Boolean),
+        });
+    }
+    catch (err) {
+        console.error('getLastMood error:', err);
+        res.status(500).json({ error: err });
+    }
 });
 exports.default = {
     getPastMoodsList,
-    sendMood
+    sendMood,
+    getLastMood
 };

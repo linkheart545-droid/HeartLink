@@ -8,4 +8,5 @@ const MoodController_1 = __importDefault(require("../controller/MoodController")
 const router = (0, express_1.Router)();
 router.post("/all", MoodController_1.default.getPastMoodsList);
 router.post("/send", MoodController_1.default.sendMood);
+router.get("/last/:id", MoodController_1.default.getLastMood);
 exports.default = router;
