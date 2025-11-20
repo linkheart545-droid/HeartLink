@@ -7,6 +7,7 @@ export interface PushPayload {
     moodId: string,
     senderId: string,
     receiverId: string,
+    timestamp: string
 }
 
 export async function sendPushToTokens(
@@ -26,7 +27,8 @@ export async function sendPushToTokens(
         data: {
             moodId: payload.moodId,
             receiverId: payload.receiverId,
-            senderId: payload.senderId
+            senderId: payload.senderId,
+            timestamp: payload.timestamp
         },
         android: {
             priority: 'high', // Keep this for reliable delivery

@@ -89,9 +89,10 @@ const sendMood = async(req: Request, res: Response) => {
     const mood = await newMood.save()
 
     await sendNotificationToUser(receiverId, {
-        moodId: moodId,
-        receiverId: receiverId,
-        senderId: senderId
+        moodId: String(moodId),
+        receiverId: String(receiverId),
+        senderId: String(senderId),
+        timestamp: String(mood.timestamp)
     });
 
     res.status(200).json(mood)
