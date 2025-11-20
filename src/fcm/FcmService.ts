@@ -26,8 +26,7 @@ export async function sendPushToTokens(
         data: {
             moodId: payload.moodId,
             receiverId: payload.receiverId,
-            senderId: payload.senderId,
-            timestamp: Date.now().toString(),
+            senderId: payload.senderId
         },
         android: {
             priority: 'high', // Keep this for reliable delivery
