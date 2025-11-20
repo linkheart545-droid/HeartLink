@@ -6,16 +6,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupFirebase = setupFirebase;
 exports.getMessaging = getMessaging;
 const firebase_admin_1 = __importDefault(require("firebase-admin"));
-const firebase_config_json_1 = __importDefault(require("./firebase.config.json"));
+let app = null;
 function setupFirebase() {
-    if (firebase_admin_1.default.apps.length === 0) {
-        firebase_admin_1.default.initializeApp({
-            credential: firebase_admin_1.default.credential.cert(firebase_config_json_1.default),
+    if (!app) {
+        const projectId = process.env.FIREBASE_PROJECT_ID;
+        const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+        let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+        if (!projectId || !clientEmail || !privateKey) {
+            throw new Error("Missing Firebase service account env vars");
+        }
+        // If you store the key in .env with literal \n, fix them:
+        privateKey = privateKey.replace(/\\n/g, '\n');
+        app = firebase_admin_1.default.initializeApp({
+            credential: firebase_admin_1.default.credential.cert({
+                projectId,
+                clientEmail,
+                privateKey,
+            }),
         });
-        console.log("Firebase initialized with project:", firebase_config_json_1.default.project_id);
-    }
-    else {
-        console.log("Firebase already initialized");
+        console.log("Firebase initialized for project:", projectId);
     }
     return firebase_admin_1.default;
 }
