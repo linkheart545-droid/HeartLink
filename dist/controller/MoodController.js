@@ -8,64 +8,51 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const Mood_1 = require("../model/Mood");
 const Room_1 = require("../model/Room");
 const User_1 = require("../model/User");
-const client_s3_1 = require("@aws-sdk/client-s3");
-const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
-const s3Client_1 = __importDefault(require("../util/s3Client"));
 const NotificationService_1 = require("../fcm/NotificationService");
 const getPastMoodsList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const code = req.body.code;
-    const moods = yield Mood_1.Mood.find({ code: code });
-    const room = yield Room_1.Room.exists({ code: code });
-    if (!room) {
-        res.status(404).json({ error: "No room found for given code" });
-        return;
+    try {
+        const code = req.body.code;
+        const PAGE_SIZE = 20;
+        // page is taken from query string: /moods?page=2
+        const page = parseInt(req.params.page) || 1;
+        const skip = (page - 1) * PAGE_SIZE;
+        // Check if room exists
+        const room = yield Room_1.Room.exists({ code });
+        if (!room) {
+            res.status(404).json({ error: "No room found for given code" });
+            return;
+        }
+        // Get total count for this code (for frontend to know number of pages)
+        const totalMoods = yield Mood_1.Mood.countDocuments({ code });
+        // Fetch paginated moods: newest first
+        const moods = yield Mood_1.Mood.find({ code })
+            .sort({ timestamp: -1 }) // assumes you have timestamps / createdAt
+            .skip(skip)
+            .limit(PAGE_SIZE);
+        if (!moods || moods.length === 0) {
+            res.status(404).json({ error: "Could not find past moods" });
+            return;
+        }
+        res.status(200).json({
+            data: moods,
+            pagination: {
+                page,
+                pageSize: PAGE_SIZE,
+                totalItems: totalMoods,
+                totalPages: Math.ceil(totalMoods / PAGE_SIZE),
+                hasNextPage: page * PAGE_SIZE < totalMoods,
+                hasPrevPage: page > 1,
+            },
+        });
     }
-    if (!moods) {
-        res.status(404).json({ error: "Could not find past moods" });
-        return;
+    catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server error" });
     }
-    const user1 = yield User_1.User.findOne({ id: moods[0].senderId });
-    const user2 = yield User_1.User.findOne({ id: moods[0].receiverId });
-    if (!user1 || !user2) {
-        res.status(404).json({ error: "Could not find users" });
-        return;
-    }
-    if (user1.profileImageUrl != "") {
-        const getObjectParams = {
-            Bucket: process.env.BUCKET_NAME,
-            Key: user1.profileImageUrl
-        };
-        const command = new client_s3_1.GetObjectCommand(getObjectParams);
-        user1.profileImageUrl = yield (0, s3_request_presigner_1.getSignedUrl)(s3Client_1.default, command, { expiresIn: 3600 });
-    }
-    if (user2.profileImageUrl != "") {
-        const getObjectParams = {
-            Bucket: process.env.BUCKET_NAME,
-            Key: user2.profileImageUrl
-        };
-        const command = new client_s3_1.GetObjectCommand(getObjectParams);
-        user2.profileImageUrl = yield (0, s3_request_presigner_1.getSignedUrl)(s3Client_1.default, command, { expiresIn: 3600 });
-    }
-    const list = [];
-    for (const mood of moods) {
-        const json = {
-            id: mood.id,
-            moodId: mood.moodId,
-            sender: user1,
-            receiver: user2,
-            code: code,
-            timestamp: mood.timestamp
-        };
-        list.push(json);
-    }
-    res.status(200).json(list);
 });
 const sendMood = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { moodId, senderId, receiverId } = req.body;
