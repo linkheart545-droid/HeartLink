@@ -45,15 +45,6 @@ export const handleMessage = async (ws: WebSocket, data: string) => {
             msg.attachment = await getSignedUrl(client, command, {expiresIn: 3600})
         }
 
-        // Check if the receiver is connected
-        const receiverSocket = getClientSocket(msg.receiverId)
-        if (receiverSocket && receiverSocket.readyState === WebSocket.OPEN) {
-            console.log(`Forwarding message to receiver ${msg.receiverId}`)
-            receiverSocket.send(JSON.stringify(msg))
-        } else {
-            console.log(`Receiver ${msg.receiverId} is not connected or socket not open`)
-        }
-
         const count = await Chat.countDocuments({}, {hint: '_id_'})
 
         const newChat = new Chat({
@@ -62,13 +53,21 @@ export const handleMessage = async (ws: WebSocket, data: string) => {
             receiverId: msg.receiverId,
             code: msg.code,
             message: msg.message,
-            attachment: imageName ?? "",
-            timestamp: msg.timestamp
+            attachment: imageName ?? ""
         })
 
         await newChat.save()
 
-        ws.send(JSON.stringify({type: 'Acknowledgment', message: msg}))
+        // Check if the receiver is connected
+        const receiverSocket = getClientSocket(msg.receiverId)
+        if (receiverSocket && receiverSocket.readyState === WebSocket.OPEN) {
+            console.log(`Forwarding message to receiver ${msg.receiverId}`)
+            receiverSocket.send(JSON.stringify(newChat))
+        } else {
+            console.log(`Receiver ${msg.receiverId} is not connected or socket not open`)
+        }
+
+        ws.send(JSON.stringify({type: 'Acknowledgment', message: newChat}))
         console.log(`Acknowledgment sent to sender ${msg.senderId}`)
     } catch (error: any) {
         console.error('Invalid JSON received:', data)
