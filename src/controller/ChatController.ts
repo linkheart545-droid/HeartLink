@@ -8,29 +8,58 @@ import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 
 const randomImageName = () => crypto.randomBytes(32).toString('hex')
 
-const getChat = async (req: Request, res: Response) => {
-    const code = req.params.code
-
-    const chats = await Chat.find({code: code})
-
-    if (!chats) {
-        res.status(404).json({message: "No chats found"})
+const exportChat = async (req: Request, res: Response) => {
+    if (!req.file) {
+        res.status(404).send("No file found")
         return
     }
 
-    for (const chat of chats) {
-        if (chat.attachment && chat.attachment.length > 0) {
-            const getObjectParams = {
-                Bucket: process.env.BUCKET_NAME!!,
-                Key: chat.attachment
-            }
-
-            const command = new GetObjectCommand(getObjectParams)
-            chat.attachment = await getSignedUrl(client, command, {expiresIn: 3600})
+    try {
+        const fileName = req.body.fileName
+        const params = {
+            Bucket: process.env.BUCKET_NAME!!,
+            Key: fileName,
+            Body: req.file!!.buffer,
+            ContentType: req.file!!.mimetype
         }
+
+        const command = new PutObjectCommand(params)
+        await client.send(command)
+
+        res.status(200).json({message: "Chat exported successfully"})
+    } catch (error: any) {
+        console.log("Failed to export chat. Error : " + error.message)
+        res.status(500).json({
+            message: `Failed to export chat`,
+            error: error.message
+        })
+    }
+}
+
+const importChat = async (req: Request, res: Response) => {
+    if (!req.body.fileName) {
+        res.status(404).send("File name empty")
+        return
     }
 
-    res.status(200).json(chats)
+    try {
+        const fileName = req.body.fileName
+        const getObjectParams = {
+            Bucket: process.env.BUCKET_NAME!!,
+            Key: fileName
+        }
+
+        const command = new GetObjectCommand(getObjectParams)
+        const url = await getSignedUrl(client, command, {expiresIn: 3600})
+
+        res.status(200).json({fileUrl : url})
+    } catch (error: any) {
+        console.log("Failed to import chat. Error : " + error.message)
+        res.status(500).json({
+            message: `Failed to import chat`,
+            error: error.message
+        })
+    }
 }
 
 const sendAttachment = async (req: Request, res: Response) => {
@@ -55,12 +84,14 @@ const sendAttachment = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.log("Failed to upload image. Error : " + error.message)
         res.status(500).json({
-            message: error.message
+            message: `Failed to upload image`,
+            error: error.message
         })
     }
 }
 
 export default {
-    getChat,
-    sendAttachment
+    sendAttachment,
+    exportChat,
+    importChat
 }

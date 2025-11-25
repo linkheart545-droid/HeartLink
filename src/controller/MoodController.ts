@@ -99,6 +99,7 @@ const sendMood = async (req: Request, res: Response) => {
             // 2) Try to send notification
             try {
                 await sendNotificationToUser(receiverId, {
+                    type: 'mood',
                     moodId: String(moodId),
                     receiverId: String(receiverId),
                     senderId: String(senderId),

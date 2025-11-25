@@ -5,6 +5,7 @@ import {Chat} from "../model/Chat";
 import {GetObjectCommand} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import client from "../util/s3Client";
+import {sendNotificationToUser} from "../fcm/NotificationService";
 
 const clients = new Map<number, WebSocket>() // move this to a shared module if needed
 
@@ -45,29 +46,24 @@ export const handleMessage = async (ws: WebSocket, data: string) => {
             msg.attachment = await getSignedUrl(client, command, {expiresIn: 3600})
         }
 
-        const count = await Chat.countDocuments({}, {hint: '_id_'})
-
-        const newChat = new Chat({
-            id: count + 1,
-            senderId: msg.senderId,
-            receiverId: msg.receiverId,
-            code: msg.code,
-            message: msg.message,
-            attachment: imageName ?? ""
-        })
-
-        await newChat.save()
-
         // Check if the receiver is connected
         const receiverSocket = getClientSocket(msg.receiverId)
         if (receiverSocket && receiverSocket.readyState === WebSocket.OPEN) {
             console.log(`Forwarding message to receiver ${msg.receiverId}`)
-            receiverSocket.send(JSON.stringify(newChat))
+            receiverSocket.send(JSON.stringify(msg))
         } else {
             console.log(`Receiver ${msg.receiverId} is not connected or socket not open`)
+            await sendNotificationToUser(msg.receiverId, {
+                type: 'chat',
+                receiverId: String(msg.receiverId),
+                senderId: String(msg.senderId),
+                timestamp: String(msg.timestamp),
+                message: String(msg.message),
+                attachment: String(msg.attachment)
+            })
         }
 
-        ws.send(JSON.stringify({type: 'Acknowledgment', message: newChat}))
+        ws.send(JSON.stringify({type: 'Acknowledgment', message: msg}))
         console.log(`Acknowledgment sent to sender ${msg.senderId}`)
     } catch (error: any) {
         console.error('Invalid JSON received:', data)
