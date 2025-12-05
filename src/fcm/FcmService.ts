@@ -4,7 +4,7 @@ import type admin from 'firebase-admin';
 import {FcmToken} from '../model/FcmToken';
 
 interface Payload {
-    type: 'mood' | 'chat'
+    type: 'mood' | 'chat' | 'leave'
     senderId: string
     receiverId: string
     timestamp: string
@@ -21,7 +21,11 @@ export interface ChatPayload extends Payload {
     attachment: string
 }
 
-export type PushPayload = MoodPayload | ChatPayload
+export interface LeavePayload extends Payload {
+    type: 'leave'
+}
+
+export type PushPayload = MoodPayload | ChatPayload | LeavePayload
 
 export async function sendPushToToken(
     token: string,
@@ -52,6 +56,10 @@ export async function sendPushToToken(
             timestamp: String(payload.timestamp ?? ''),
             message: String(payload.message ?? ''),
             attachment: String(payload.attachment ?? ''),
+        }
+    } else if (payload.type === 'leave') {
+        data = {
+            type: 'leave'
         }
     } else {
         throw new Error('Unknown message type provided')

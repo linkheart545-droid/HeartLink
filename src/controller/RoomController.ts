@@ -3,20 +3,22 @@ import {randomInt} from "node:crypto";
 import {Room} from "../model/Room";
 import {User} from "../model/User";
 import mongoose from "mongoose";
+import {sendNotificationToUser} from "../fcm/NotificationService";
+import {ifError} from "node:assert";
 
 const generateCode = async (req: Request, res: Response) => {
     try {
-        let code = randomInt(0,100000)
-        let codeExists = await Room.exists({code : code.toString() })
+        let code = randomInt(0, 100000)
+        let codeExists = await Room.exists({code: code.toString()})
 
         while (codeExists) {
-            code = randomInt(0,100000)
-            codeExists = await Room.exists({code : code.toString()})
+            code = randomInt(0, 100000)
+            codeExists = await Room.exists({code: code.toString()})
         }
 
         res.status(200).json({code: code.toString()})
     } catch (error: any) {
-        res.status(500).json({message: "Unable to generate code",error: error.message})
+        res.status(500).json({message: "Unable to generate code", error: error.message})
     }
 }
 
@@ -31,16 +33,16 @@ const createRoomAndAssignCode = async (ownerId: number, joinerId: number, code: 
         }
 
         // Create the room
-        const room = new Room({ userId1: ownerId, userId2: joinerId, code })
-        await room.save({ session })
+        const room = new Room({userId1: ownerId, userId2: joinerId, code})
+        await room.save({session})
 
         console.log(`Owner : ${ownerId}, Joiner ID : ${joinerId}, Code : ${code}`)
 
         // Update both users atomically
         await User.updateMany(
-            { id: { $in: [ownerId, joinerId] } },
-            { $set: { code } },
-            { session }
+            {id: {$in: [ownerId, joinerId]}},
+            {$set: {code}},
+            {session}
         )
 
         await session.commitTransaction()
@@ -57,25 +59,42 @@ const createRoomAndAssignCode = async (ownerId: number, joinerId: number, code: 
 
 const leaveRoom = async (req: Request, res: Response) => {
     try {
-        const {code} = req.body
+        const {userId, code} = req.body
 
-        const room = await Room.findOne({code : code})
+        const room = await Room.findOne({code: code})
 
         if (!room) {
             res.status(404).json({error: "Room not found"})
             return
         }
 
+        let partnerId: number
+        let senderId: number
+        if (room.userId1 == userId) {
+            senderId = room.userId1
+            partnerId = room.userId2
+        } else {
+            senderId = room.userId2
+            partnerId = room.userId1
+        }
+
         await User.updateMany(
-            { id: { $in: [room.userId1, room.userId2] } },
-            { $set: { code: "" } }
+            {id: {$in: [room.userId1, room.userId2]}},
+            {$set: {code: ""}}
         )
 
         await room.deleteOne()
 
+        await sendNotificationToUser(partnerId.toString(), {
+            type: 'leave',
+            senderId: String(senderId),
+            receiverId: String(partnerId),
+            timestamp: String(Date.now())
+        })
+
         res.status(200).json({message: 'Room deleted successfully'})
     } catch (error: any) {
-        res.status(500).json({message: "Unable to leave room",error: error.message})
+        res.status(500).json({message: "Unable to leave room", error: error.message})
     }
 }
 

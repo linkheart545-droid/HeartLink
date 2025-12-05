@@ -1,6 +1,4 @@
 import {Request, Response} from "express"
-import {Chat} from "../model/Chat"
-import router from "../routes/FcmRoutes";
 import {GetObjectCommand, PutObjectCommand} from "@aws-sdk/client-s3";
 import client from "../util/s3Client";
 import crypto from "crypto";
