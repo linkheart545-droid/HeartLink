@@ -19,6 +19,8 @@ const RoomController_1 = __importDefault(require("../controller/RoomController")
 const roomClients = new Map();
 // Room map: code → owner userId
 const roomMap = new Map();
+// code → joinerId (only when join-request is sent)
+const joiningState = new Map();
 const setRoomClient = (userId, ws) => {
     roomClients.set(userId, ws);
 };
@@ -48,17 +50,48 @@ const setRoomMap = (userId, code, ws) => {
 exports.setRoomMap = setRoomMap;
 const removeRoomClient = (ws) => {
     for (const [id, socket] of roomClients.entries()) {
-        if (socket === ws) {
-            roomClients.delete(id);
-            // Remove any room owned by this user
-            for (const [code, ownerId] of roomMap.entries()) {
-                if (ownerId === id) {
-                    roomMap.delete(code);
-                    console.log(`Deleted room ${code} (owner disconnected)`);
+        if (socket !== ws)
+            continue;
+        console.log(`User ${id} disconnected`);
+        // Case 1 — User was owner of a room
+        for (const [code, ownerId] of roomMap.entries()) {
+            if (ownerId === id) {
+                console.log(`Owner ${id} disconnected from room ${code}`);
+                const joinerId = joiningState.get(code);
+                const joinerSocket = joinerId ? roomClients.get(joinerId) : undefined;
+                if (joinerSocket && joinerSocket.readyState === ws_1.WebSocket.OPEN) {
+                    joinerSocket.send(JSON.stringify({
+                        type: "join-disconnect",
+                        userId: id,
+                        code,
+                        message: "Owner disconnected during joining"
+                    }));
                 }
+                // clean up
+                roomMap.delete(code);
+                joiningState.delete(code);
             }
-            break;
         }
+        // Case 2 — User was joiner
+        for (const [code, joinerId] of joiningState.entries()) {
+            if (joinerId === id) {
+                const ownerId = roomMap.get(code);
+                const ownerSocket = ownerId ? roomClients.get(ownerId) : undefined;
+                console.log(`Joiner ${id} disconnected from room ${code}`);
+                if (ownerSocket && ownerSocket.readyState === ws_1.WebSocket.OPEN) {
+                    ownerSocket.send(JSON.stringify({
+                        type: "join-disconnect",
+                        userId: id,
+                        code,
+                        message: "Joiner disconnected during joining"
+                    }));
+                }
+                // clean up
+                joiningState.delete(code);
+            }
+        }
+        roomClients.delete(id);
+        break;
     }
 };
 exports.removeRoomClient = removeRoomClient;
@@ -77,6 +110,7 @@ const handleRoomMessage = (ws, data) => __awaiter(void 0, void 0, void 0, functi
                 ws.send(JSON.stringify({ error: `Room ${code} not found` }));
                 return;
             }
+            joiningState.set(code, userId); // store joiner
             if (ownerSocket && ownerSocket.readyState === ws_1.WebSocket.OPEN) {
                 console.log(`User ${userId} joining room ${code}, notifying owner ${ownerId}`);
                 ownerSocket.send(JSON.stringify({ type: 'join-request', userId: userId, code: code, status: 'joining' }));
