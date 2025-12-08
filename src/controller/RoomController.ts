@@ -70,6 +70,7 @@ const leaveRoom = async (req: Request, res: Response) => {
 
         let partnerId: number
         let senderId: number
+
         if (room.userId1 == userId) {
             senderId = room.userId1
             partnerId = room.userId2
@@ -77,6 +78,8 @@ const leaveRoom = async (req: Request, res: Response) => {
             senderId = room.userId2
             partnerId = room.userId1
         }
+
+        console.log(`Partner Id: ${partnerId}, SenderId: ${senderId}`)
 
         await User.updateMany(
             {id: {$in: [room.userId1, room.userId2]}},

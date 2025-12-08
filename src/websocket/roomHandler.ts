@@ -35,15 +35,66 @@ export const setRoomMap = (userId: number, code: string, ws: WebSocket) => {
 export const removeRoomClient = (ws: WebSocket) => {
     for (const [id, socket] of roomClients.entries()) {
         if (socket === ws) {
-            roomClients.delete(id)
-            // Remove any room owned by this user
-            for (const [code, ownerId] of roomMap.entries()) {
-                if (ownerId === id) {
-                    roomMap.delete(code)
-                    console.log(`Deleted room ${code} (owner disconnected)`)
+
+            console.log(`User ${id} disconnected`);
+
+            // Find if this user was an owner of any room
+            let disconnectCode: string | null = null;
+            let ownerId: number | null = null;
+
+            for (const [code, oId] of roomMap.entries()) {
+                if (oId === id) {
+                    disconnectCode = code;
+                    ownerId = id;
+                    break;
                 }
             }
-            break
+
+            // If they are owner and a joiner was trying to join
+            if (disconnectCode && ownerId !== null) {
+                console.log(`Owner ${ownerId} disconnected from room ${disconnectCode}`);
+
+                // find joiner: any connected user except owner
+                const joinerEntry = Array.from(roomClients.entries())
+                    .find(([uid]) => uid !== ownerId);
+
+                if (joinerEntry) {
+                    const [joinerId, joinerSocket] = joinerEntry;
+
+                    if (joinerSocket.readyState === WebSocket.OPEN) {
+                        joinerSocket.send(JSON.stringify({
+                            type: 'join-disconnect',
+                            userId: ownerId,
+                            code: disconnectCode,
+                            message: `Owner with id ${ownerId} disconnected`
+                        }))
+                    }
+                }
+
+                roomMap.delete(disconnectCode);
+            }
+
+            // If this user is a joiner trying to join an owner
+            for (const [code, owner] of roomMap.entries()) {
+                const ownerSocket = roomClients.get(owner);
+
+                // Joiner disconnect case
+                if (owner !== id) {
+                    if (ownerSocket && ownerSocket.readyState === WebSocket.OPEN) {
+                        ownerSocket.send(JSON.stringify({
+                            type: 'join-disconnect',
+                            userId: id,
+                            code: code,
+                            message: `Joiner with id ${id} disconnected`
+                        }))
+                    }
+                }
+            }
+
+            // Remove user from connection map
+            roomClients.delete(id);
+
+            break;
         }
     }
 }

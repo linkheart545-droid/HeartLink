@@ -16,6 +16,7 @@ const node_crypto_1 = require("node:crypto");
 const Room_1 = require("../model/Room");
 const User_1 = require("../model/User");
 const mongoose_1 = __importDefault(require("mongoose"));
+const NotificationService_1 = require("../fcm/NotificationService");
 const generateCode = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         let code = (0, node_crypto_1.randomInt)(0, 100000);
@@ -60,14 +61,31 @@ const createRoomAndAssignCode = (ownerId, joinerId, code) => __awaiter(void 0, v
 });
 const leaveRoom = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { code } = req.body;
+        const { userId, code } = req.body;
         const room = yield Room_1.Room.findOne({ code: code });
         if (!room) {
             res.status(404).json({ error: "Room not found" });
             return;
         }
+        let partnerId;
+        let senderId;
+        if (room.userId1 == userId) {
+            senderId = room.userId1;
+            partnerId = room.userId2;
+        }
+        else {
+            senderId = room.userId2;
+            partnerId = room.userId1;
+        }
+        console.log(`Partner Id: ${partnerId}, SenderId: ${senderId}`);
         yield User_1.User.updateMany({ id: { $in: [room.userId1, room.userId2] } }, { $set: { code: "" } });
         yield room.deleteOne();
+        yield (0, NotificationService_1.sendNotificationToUser)(partnerId.toString(), {
+            type: 'leave',
+            senderId: String(senderId),
+            receiverId: String(partnerId),
+            timestamp: String(Date.now())
+        });
         res.status(200).json({ message: 'Room deleted successfully' });
     }
     catch (error) {

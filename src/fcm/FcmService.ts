@@ -59,7 +59,10 @@ export async function sendPushToToken(
         }
     } else if (payload.type === 'leave') {
         data = {
-            type: 'leave'
+            type: 'leave',
+            receiverId: String(payload.receiverId ?? ''),
+            senderId: String(payload.senderId ?? ''),
+            timestamp: String(payload.timestamp ?? '')
         }
     } else {
         throw new Error('Unknown message type provided')
@@ -72,6 +75,8 @@ export async function sendPushToToken(
             priority: 'high',
         },
     }
+
+    console.log(`Data: ${JSON.stringify(data, null, 2)}`)
 
     try {
         const messageId = await messaging.send(message)

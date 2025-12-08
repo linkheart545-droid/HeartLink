@@ -14,10 +14,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleMessage = exports.getClientSocket = exports.removeClientSocket = exports.setClientSocket = void 0;
 const ws_1 = require("ws");
-const Chat_1 = require("../model/Chat");
 const client_s3_1 = require("@aws-sdk/client-s3");
 const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 const s3Client_1 = __importDefault(require("../util/s3Client"));
+const NotificationService_1 = require("../fcm/NotificationService");
 const clients = new Map(); // move this to a shared module if needed
 const setClientSocket = (userId, ws) => {
     if (!clients.has(userId)) {
@@ -60,18 +60,15 @@ const handleMessage = (ws, data) => __awaiter(void 0, void 0, void 0, function* 
         }
         else {
             console.log(`Receiver ${msg.receiverId} is not connected or socket not open`);
+            yield (0, NotificationService_1.sendNotificationToUser)(msg.receiverId, {
+                type: 'chat',
+                receiverId: String(msg.receiverId),
+                senderId: String(msg.senderId),
+                timestamp: String(msg.timestamp),
+                message: String(msg.message),
+                attachment: String(msg.attachment)
+            });
         }
-        const count = yield Chat_1.Chat.countDocuments({}, { hint: '_id_' });
-        const newChat = new Chat_1.Chat({
-            id: count + 1,
-            senderId: msg.senderId,
-            receiverId: msg.receiverId,
-            code: msg.code,
-            message: msg.message,
-            attachment: imageName !== null && imageName !== void 0 ? imageName : "",
-            timestamp: msg.timestamp
-        });
-        yield newChat.save();
         ws.send(JSON.stringify({ type: 'Acknowledgment', message: msg }));
         console.log(`Acknowledgment sent to sender ${msg.senderId}`);
     }

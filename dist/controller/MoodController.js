@@ -92,6 +92,7 @@ const sendMood = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             // 2) Try to send notification
             try {
                 yield (0, NotificationService_1.sendNotificationToUser)(receiverId, {
+                    type: 'mood',
                     moodId: String(moodId),
                     receiverId: String(receiverId),
                     senderId: String(senderId),
