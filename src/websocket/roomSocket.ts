@@ -27,8 +27,11 @@ export const setupRoomSocket = (server: http.Server) => {
             return
         }
 
-        if (!code || code.length === 0) { }
+        if (!code || code.length === 0) {
+            console.log(`Code ${code} is null for user ${userId}`)
+        }
         else {
+            console.log(`Code ${code} is exist Adding to room for user ${userId}`)
             setRoomMap(userId,code,ws)
         }
 
