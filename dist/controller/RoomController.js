@@ -39,6 +39,7 @@ const createRoomAndAssignCode = (ownerId, joinerId, code) => __awaiter(void 0, v
         if (exists) {
             console.log(`Room with code ${code} already exists`);
             yield session.abortTransaction();
+            throw new Error(`Room with code ${code} already exists`);
         }
         // Create the room
         const room = new Room_1.Room({ userId1: ownerId, userId2: joinerId, code });
@@ -92,8 +93,37 @@ const leaveRoom = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.status(500).json({ message: "Unable to leave room", error: error.message });
     }
 });
+const deleteRoomAndClearCode = (code) => __awaiter(void 0, void 0, void 0, function* () {
+    const session = yield mongoose_1.default.startSession();
+    session.startTransaction();
+    try {
+        // Find room first (so we know users)
+        const room = yield Room_1.Room.findOne({ code }).session(session);
+        if (!room) {
+            console.log(`No room found with code ${code}`);
+            yield session.abortTransaction();
+            return;
+        }
+        const { userId1, userId2 } = room;
+        // Delete room
+        yield Room_1.Room.deleteOne({ code }).session(session);
+        // Clear code for both users
+        yield User_1.User.updateMany({ id: { $in: [userId1, userId2] } }, { $set: { code: "" } }, { session });
+        yield session.commitTransaction();
+        console.log(`Room ${code} deleted and users cleared successfully`);
+    }
+    catch (err) {
+        yield session.abortTransaction();
+        console.error(`Failed to delete room ${code}:`, err);
+        throw err;
+    }
+    finally {
+        yield session.endSession();
+    }
+});
 exports.default = {
     generateCode,
     createRoomAndAssignCode,
-    leaveRoom
+    leaveRoom,
+    deleteRoomAndClearCode
 };

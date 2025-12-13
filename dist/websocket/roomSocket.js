@@ -23,8 +23,11 @@ const setupRoomSocket = (server) => {
             ws.close();
             return;
         }
-        if (!code || code.length === 0) { }
+        if (!code || code.length === 0) {
+            console.log(`Code ${code} is null for user ${userId}`);
+        }
         else {
+            console.log(`Code ${code} is exist Adding to room for user ${userId}`);
             (0, roomHandler_1.setRoomMap)(userId, code, ws);
         }
         console.log(`User ${userId} connected to /room`);

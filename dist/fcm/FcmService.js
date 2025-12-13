@@ -15,7 +15,7 @@ const setupFirebase_1 = require("./setupFirebase");
 const FcmToken_1 = require("../model/FcmToken");
 function sendPushToToken(token, payload) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
         if (!token) {
             console.log('No token provided');
             throw new Error('No token provided');
@@ -47,6 +47,14 @@ function sendPushToToken(token, payload) {
                 receiverId: String((_k = payload.receiverId) !== null && _k !== void 0 ? _k : ''),
                 senderId: String((_l = payload.senderId) !== null && _l !== void 0 ? _l : ''),
                 timestamp: String((_m = payload.timestamp) !== null && _m !== void 0 ? _m : '')
+            };
+        }
+        else if (payload.type === 'room') {
+            data = {
+                type: 'room',
+                receiverId: String((_o = payload.receiverId) !== null && _o !== void 0 ? _o : ''),
+                senderId: String((_p = payload.senderId) !== null && _p !== void 0 ? _p : ''),
+                status: String(payload.status)
             };
         }
         else {

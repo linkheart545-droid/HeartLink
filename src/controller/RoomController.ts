@@ -30,6 +30,7 @@ const createRoomAndAssignCode = async (ownerId: number, joinerId: number, code: 
         if (exists) {
             console.log(`Room with code ${code} already exists`)
             await session.abortTransaction()
+            throw new Error(`Room with code ${code} already exists`)
         }
 
         // Create the room
@@ -101,8 +102,46 @@ const leaveRoom = async (req: Request, res: Response) => {
     }
 }
 
+const deleteRoomAndClearCode = async (code: string) => {
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+    try {
+        // Find room first (so we know users)
+        const room = await Room.findOne({ code }).session(session)
+
+        if (!room) {
+            console.log(`No room found with code ${code}`)
+            await session.abortTransaction()
+            return
+        }
+
+        const { userId1, userId2 } = room
+
+        // Delete room
+        await Room.deleteOne({ code }).session(session)
+
+        // Clear code for both users
+        await User.updateMany(
+            { id: { $in: [userId1, userId2] } },
+            { $set: { code: "" } },
+            { session }
+        )
+
+        await session.commitTransaction()
+        console.log(`Room ${code} deleted and users cleared successfully`)
+    } catch (err) {
+        await session.abortTransaction()
+        console.error(`Failed to delete room ${code}:`, err)
+        throw err
+    } finally {
+        await session.endSession()
+    }
+}
+
 export default {
     generateCode,
     createRoomAndAssignCode,
-    leaveRoom
+    leaveRoom,
+    deleteRoomAndClearCode
 }

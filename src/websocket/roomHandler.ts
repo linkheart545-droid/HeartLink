@@ -1,6 +1,7 @@
 import {WebSocket} from 'ws'
 import {Room} from "../model/Room";
 import roomController from "../controller/RoomController";
+import {sendNotificationToUser} from "../fcm/NotificationService";
 
 // Connected clients: userId → socket
 const roomClients = new Map<number, WebSocket>()
@@ -8,6 +9,11 @@ const roomClients = new Map<number, WebSocket>()
 const roomMap = new Map<string, number>()
 // code → joinerId (only when join-request is sent)
 const joiningState = new Map<string, number>();
+
+const finalAckState = new Map<
+    string,
+    { ownerAck: boolean; joinerAck: boolean; timer?: NodeJS.Timeout }
+>()
 
 export const setRoomClient = (userId: number, ws: WebSocket) => {
     roomClients.set(userId, ws)
@@ -141,38 +147,167 @@ export const handleRoomMessage = async (ws: WebSocket, data: string) => {
             const [joinerId, joinerSocket] = joinerEntry
 
             if (joinerSocket && joinerSocket.readyState === WebSocket.OPEN) {
+                finalAckState.set(code, {
+                    ownerAck: false,
+                    joinerAck: false
+                })
+
                 console.log(`Owner ${ownerId} confirmed success for code ${code}`)
-                joinerSocket.send(JSON.stringify({ type: 'join-success', userId: ownerId, code, status: 'success' }))
+                joinerSocket.send(JSON.stringify({type: 'join-success', userId: ownerId, code, status: 'success'}))
 
                 // Create room & update user codes in DB
                 await roomController.createRoomAndAssignCode(ownerId, joinerId, code)
 
                 // Notify both clients
-                const finalMsgToOwner = JSON.stringify({ type: 'final', userId: joinerId, code: code, message: 'Room created successfully' })
-                const finalMsgToJoiner = JSON.stringify({ type: 'final', userId: ownerId, code: code, message: 'Room created successfully' })
+                const finalMsgToOwner = JSON.stringify({
+                    type: 'final',
+                    userId: joinerId,
+                    code: code,
+                    message: 'Room created successfully'
+                })
+                const finalMsgToJoiner = JSON.stringify({
+                    type: 'final',
+                    userId: ownerId,
+                    code: code,
+                    message: 'Room created successfully'
+                })
                 ws.send(finalMsgToOwner)
                 joinerSocket.send(finalMsgToJoiner)
+            } else {
+                ws.send(JSON.stringify({error: 'Joiner not connected'}))
+            }
+        } else if (status == 'final-ack') {
+            const ownerId = roomMap.get(code);
+            const joinerId = joiningState.get(code);
 
-                // Cleanup and disconnect
+            if (!ownerId || !joinerId) return;
+
+            const ackState = finalAckState.get(code);
+            if (!ackState) return;
+
+            const ownerSocket = roomClients.get(ownerId);
+            const joinerSocket = roomClients.get(joinerId);
+
+            console.log(`Final-ack from ${userId} for room ${code}`);
+
+            // 🔹 OWNER ACK
+            if (userId === ownerId && !ackState.ownerAck) {
+                ackState.ownerAck = true;
+
+                if (ownerSocket?.readyState === WebSocket.OPEN) {
+                    setTimeout(() => {
+                        ownerSocket.close(1000, 'Final ack complete');
+                        roomClients.delete(ownerId);
+                    }, 300);
+                }
+            }
+
+            // 🔹 JOINER ACK
+            if (userId === joinerId && !ackState.joinerAck) {
+                ackState.joinerAck = true;
+
+                if (joinerSocket?.readyState === WebSocket.OPEN) {
+                    setTimeout(() => {
+                        joinerSocket.close(1000, 'Final ack complete');
+                        roomClients.delete(joinerId);
+                    }, 300);
+                }
+            }
+
+            console.log(`Final-ack from ${userId} for room ${code}`)
+
+            // If first ack → start timer
+            if (!ackState.timer) {
+                ackState.timer = setTimeout(async () => {
+
+                    console.log(`Final-ack timeout for room ${code}`);
+
+                    // ❌ both did NOT ack
+                    if (!(ackState.ownerAck && ackState.joinerAck)) {
+
+                        // Notify connected user
+                        const ownerSocket = roomClients.get(ownerId);
+                        const joinerSocket = roomClients.get(joinerId);
+
+                        if (ownerSocket?.readyState === WebSocket.OPEN) {
+                            ownerSocket.send(JSON.stringify({
+                                type: 'room-expired',
+                                message: 'You did not confirm in time'
+                            }));
+                        }
+
+                        if (joinerSocket?.readyState === WebSocket.OPEN) {
+                            joinerSocket.send(JSON.stringify({
+                                type: 'room-expired',
+                                message: 'You did not confirm in time'
+                            }));
+                        }
+
+                        // Send FCM to the user who ACKed but disconnected
+                        if (ackState.ownerAck && !ownerSocket) {
+                            await sendNotificationToUser(String(ownerId), {
+                                status: "failed",
+                                timestamp: String(Date.now()),
+                                receiverId: String(ownerId),
+                                senderId: String(joinerId),
+                                type: 'room'
+                            })
+                        }
+                        if (ackState.joinerAck && !joinerSocket) {
+                            await sendNotificationToUser(String(joinerId), {
+                                status: "failed",
+                                timestamp: String(Date.now()),
+                                receiverId: String(joinerId),
+                                senderId: String(ownerId),
+                                type: 'room'
+                            })
+                        }
+                    }
+
+                    // Cleanup and disconnect
+                    finalAckState.delete(code);
+                    joiningState.delete(code);
+                    roomMap.delete(code);
+                    roomClients.delete(ownerId)
+                    roomClients.delete(joinerId)
+
+                    await roomController.deleteRoomAndClearCode(code)
+                }, 10000)
+            }
+
+            // ✅ If both ACK before timeout
+            if (ackState.ownerAck && ackState.joinerAck) {
+                console.log(`Both final-ack received for ${code}`);
+                clearTimeout(ackState.timer);
+
+                await Promise.all([
+                    sendNotificationToUser(String(joinerId), {
+                        status: "success",
+                        timestamp: String(Date.now()),
+                        receiverId: String(joinerId),
+                        senderId: String(ownerId),
+                        type: 'room'
+                    }),
+                    sendNotificationToUser(String(ownerId), {
+                        status: "success",
+                        timestamp: String(Date.now()),
+                        receiverId: String(ownerId),
+                        senderId: String(joinerId),
+                        type: 'room'
+                    })
+                ])
+
+                finalAckState.delete(code);
+                joiningState.delete(code);
+                roomMap.delete(code);
                 roomClients.delete(ownerId)
                 roomClients.delete(joinerId)
-                roomMap.delete(code)
-
-                setTimeout(() => {
-                    try {
-                        ws.close(1000, 'Room creation complete')
-                        joinerSocket.close(1000, 'Room creation complete')
-                    } catch (err) {
-                        console.error('Error closing sockets:', err)
-                    }
-                }, 300)
-            } else {
-                ws.send(JSON.stringify({ error: 'Joiner not connected' }))
             }
         } else {
             ws.send(JSON.stringify({error: 'Invalid status'}))
         }
-    } catch (error) {
+    } catch
+        (error) {
         console.error('Invalid JSON received:', data)
         ws.send(JSON.stringify({error: 'Invalid JSON format'}))
     }
